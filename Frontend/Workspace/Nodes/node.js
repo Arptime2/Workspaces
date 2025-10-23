@@ -4,7 +4,7 @@ class Node {
         this.y = y;
         this.radius = radius;
         this.id = id;
-        this.color = 'white'; // Default color
+        this.color = 'rgba(12, 211, 211, 1)'; // Default color
         this.label = ''; // Optional label
         this.connections = []; // For future graph features
     }
@@ -26,10 +26,10 @@ function initBalls(canvas) {
 }
 
 function drawBalls(ctx) {
-    ctx.shadowColor = 'white';
     ctx.shadowBlur = 20;
-    ctx.fillStyle = 'white';
     balls.forEach(ball => {
+        ctx.shadowColor = ball.color;
+        ctx.fillStyle = ball.color;
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
         ctx.fill();
