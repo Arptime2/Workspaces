@@ -1,5 +1,4 @@
 let firstNode = null;
-let connections = [];
 let isConnecting = false;
 let currentMouseX = 0;
 let currentMouseY = 0;
@@ -22,13 +21,12 @@ function finishConnection(secondNode) {
     if (secondNode === firstNode) {
         // Cancel
     } else {
-        const existingConnection = connections.find(conn => conn.from === firstNode.id && conn.to === secondNode.id);
-        if (existingConnection) {
-            // Delete existing connection in same direction
-            connections = connections.filter(conn => conn !== existingConnection);
+        if (firstNode.outgoing.includes(secondNode.id)) {
+            // Delete existing connection
+            firstNode.outgoing = firstNode.outgoing.filter(id => id !== secondNode.id);
         } else {
             // Add new connection
-            connections.push({ from: firstNode.id, to: secondNode.id });
+            firstNode.outgoing.push(secondNode.id);
         }
     }
     firstNode = null;
@@ -37,31 +35,29 @@ function finishConnection(secondNode) {
 }
 
 function drawConnections(ctx) {
-    connections.forEach(conn => {
-        const from = balls.find(b => b.id === conn.from);
-        const to = balls.find(b => b.id === conn.to);
-        if (from && to) {
-            const angle = Math.atan2(to.y - from.y, to.x - from.x);
-            const startX = from.x + from.radius * Math.cos(angle);
-            const startY = from.y + from.radius * Math.sin(angle);
-            const endX = to.x - to.radius * Math.cos(angle);
-            const endY = to.y - to.radius * Math.sin(angle);
-            drawLine(ctx, startX, startY, endX, endY, '--connection-line-color', false);
-            drawArrow(ctx, startX, startY, endX, endY);
-        }
+    balls.forEach(node => {
+        node.outgoing.forEach(otherId => {
+            const other = balls.find(b => b.id === otherId);
+            if (other) {
+                const angle = Math.atan2(other.y - node.y, other.x - node.x);
+                const startX = node.x + node.radius * Math.cos(angle);
+                const startY = node.y + node.radius * Math.sin(angle);
+                const endX = other.x - other.radius * Math.cos(angle);
+                const endY = other.y - other.radius * Math.sin(angle);
+                drawLine(ctx, startX, startY, endX, endY, '--connection-line-color', false);
+                drawArrow(ctx, startX, startY, endX, endY);
+            }
+        });
     });
 }
 
 function drawSelectionLine(ctx) {
     if (isConnecting && firstNode) {
-        const closeSameDirection = connections.some(conn => conn.from === firstNode.id && isCloseToLine(currentMouseX, currentMouseY, balls.find(b => b.id === conn.from), balls.find(b => b.id === conn.to)));
+        const allConnections = getAllConnections();
+        const closeSameDirection = allConnections.some(conn => conn.from === firstNode.id && isCloseToLine(currentMouseX, currentMouseY, balls.find(b => b.id === conn.from), balls.find(b => b.id === conn.to)));
         const colorVar = closeSameDirection ? '--connection-delete-color' : '--connection-dotted-color';
         drawLine(ctx, firstNode.x, firstNode.y, currentMouseX, currentMouseY, colorVar, true);
     }
-}
-
-function getCSSVar(varName) {
-    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 }
 
 function drawLine(ctx, x1, y1, x2, y2, color, dotted) {
@@ -77,6 +73,10 @@ function drawLine(ctx, x1, y1, x2, y2, color, dotted) {
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
+}
+
+function getCSSVar(varName) {
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 }
 
 function drawArrow(ctx, x1, y1, x2, y2) {
@@ -123,6 +123,16 @@ function isCloseToLine(px, py, from, to) {
     const dy = py - yy;
     const distance = Math.sqrt(dx * dx + dy * dy);
     return distance < 10; // Threshold
+}
+
+function getAllConnections() {
+    let all = [];
+    balls.forEach(node => {
+        node.outgoing.forEach(id => {
+            all.push({ from: node.id, to: id });
+        });
+    });
+    return all;
 }
 
 document.addEventListener('mousemove', (e) => {

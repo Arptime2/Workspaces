@@ -1,28 +1,51 @@
-// HTTP-based communication with backend
+// Client-side communication with backend
+let messageQueue = [];
+let pollInterval;
 
-// API for easy communication
 window.sendToBackend = async (message) => {
-    await fetch('/message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
-    });
+    try {
+        const response = await fetch('/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+        });
+        const data = await response.json();
+        console.log('Sent to backend:', message);
+    } catch (error) {
+        console.error('Error sending to backend:', error);
+    }
 };
 
-// Poll for messages from backend
-setInterval(async () => {
+window.onMessageFromBackend = (message) => {
+    console.log('Message from backend:', message);
+    // Default handler, can be overridden
+};
+
+const pollMessages = async () => {
     try {
         const response = await fetch('/poll');
         const data = await response.json();
-        data.messages.forEach(msg => {
-            if (window.onMessageFromBackend) {
-                window.onMessageFromBackend(msg);
-            }
-        });
+        if (data.messages && data.messages.length > 0) {
+            data.messages.forEach(msg => {
+                if (window.onMessageFromBackend) {
+                    window.onMessageFromBackend(msg);
+                }
+            });
+        }
     } catch (error) {
-        // Ignore polling errors
+        console.error('Error polling messages:', error);
     }
-}, 1000); // Poll every second
+};
 
-// User sets this callback
-window.onMessageFromBackend = null;
+const startPolling = () => {
+    pollInterval = setInterval(pollMessages, 1000);
+};
+
+const stopPolling = () => {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
+};
+
+// Start polling on load
+startPolling();

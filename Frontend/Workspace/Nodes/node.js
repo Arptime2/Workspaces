@@ -4,15 +4,17 @@ class Node {
         this.y = y;
         this.radius = radius;
         this.id = id;
-        this.color = 'rgba(12, 211, 211, 1)'; // Default color
+        this.name = 'Node ' + id; // Node name
+        this.color = 'lightblue'; // Default color
         this.label = ''; // Optional label
-        this.connections = []; // For future graph features
+        this.outgoing = []; // IDs of outgoing connections
     }
 }
 
 let balls = [];
 let draggedBall = null;
 let isDragging = false;
+let nextId = 0;
 
 function initBalls(canvas) {
     for (let i = 0; i < 5; i++) {
@@ -20,7 +22,7 @@ function initBalls(canvas) {
             Math.random() * 1000 + canvas.width / 2 - 500,
             Math.random() * 1000 + canvas.height / 2 - 500,
             20,
-            i
+            nextId++
         ));
     }
 }

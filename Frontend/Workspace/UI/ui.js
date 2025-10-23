@@ -5,6 +5,29 @@ let zoomInterval;
 let zoomStartTime;
 let baseFactor;
 
+function zoomIn() {
+    adjustScale(1.05);
+}
+
+function zoomOut() {
+    adjustScale(0.95);
+}
+
+function adjustScale(factor) {
+    const newScale = scale * factor;
+    if (newScale < 0.1 || newScale > 5) return;
+    const canvas = document.getElementById('canvas');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    balls.forEach(ball => {
+        ball.x = (ball.x - centerX) * (newScale / scale) + centerX;
+        ball.y = (ball.y - centerY) * (newScale / scale) + centerY;
+        ball.radius *= newScale / scale;
+    });
+    scale = newScale;
+    window.scale = scale;
+}
+
 function startZoom(initialFactor) {
     if (zooming) return;
     zooming = true;
@@ -23,21 +46,6 @@ function stopZoom() {
         zooming = false;
         clearInterval(zoomInterval);
     }
-}
-
-function adjustScale(factor) {
-    const newScale = scale * factor;
-    if (newScale < 0.1 || newScale > 5) return;
-    const canvas = document.getElementById('canvas');
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    balls.forEach(ball => {
-        ball.x = (ball.x - centerX) * (newScale / scale) + centerX;
-        ball.y = (ball.y - centerY) * (newScale / scale) + centerY;
-        ball.radius *= newScale / scale;
-    });
-    scale = newScale;
-    window.scale = scale;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
