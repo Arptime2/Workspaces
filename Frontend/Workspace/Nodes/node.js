@@ -1,0 +1,70 @@
+class Node {
+    constructor(x, y, radius = 20, id) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.id = id;
+        this.color = 'white'; // Default color
+        this.label = ''; // Optional label
+        this.connections = []; // For future graph features
+    }
+}
+
+let balls = [];
+let draggedBall = null;
+let isDragging = false;
+
+function initBalls(canvas) {
+    for (let i = 0; i < 5; i++) {
+        balls.push(new Node(
+            Math.random() * 1000 + canvas.width / 2 - 500,
+            Math.random() * 1000 + canvas.height / 2 - 500,
+            20,
+            i
+        ));
+    }
+}
+
+function drawBalls(ctx) {
+    ctx.shadowColor = 'white';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = 'white';
+    balls.forEach(ball => {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
+        ctx.fill();
+    });
+}
+
+function handleBallMouseDown(e) {
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+    balls.forEach(ball => {
+        const dist = Math.sqrt((mouseX - ball.x) ** 2 + (mouseY - ball.y) ** 2);
+        if (dist < ball.radius) {
+            draggedBall = ball;
+            isDragging = true;
+        }
+    });
+}
+
+function handleBallMouseMove(e, prevMouseX, prevMouseY) {
+    if (draggedBall) {
+        const deltaX = e.clientX - prevMouseX;
+        const deltaY = e.clientY - prevMouseY;
+        draggedBall.x += deltaX;
+        draggedBall.y += deltaY;
+    }
+}
+
+function handleBallMouseUp() {
+    draggedBall = null;
+    isDragging = false;
+}
+
+function panBalls(deltaX, deltaY) {
+    balls.forEach(ball => {
+        ball.x += deltaX;
+        ball.y += deltaY;
+    });
+}
