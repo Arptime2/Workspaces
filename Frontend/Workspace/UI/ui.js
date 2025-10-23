@@ -1,4 +1,5 @@
 let scale = 1;
+window.scale = scale;
 let zooming = false;
 let zoomInterval;
 let zoomStartTime;
@@ -36,6 +37,7 @@ function adjustScale(factor) {
         ball.radius *= newScale / scale;
     });
     scale = newScale;
+    window.scale = scale;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -1,0 +1,13 @@
+:root {
+    --connection-line-color: white;
+    --connection-dotted-color: white;
+    --connection-delete-color: red;
+    --connection-arrow-color: white;
+    --connection-line-width: 6;
+    --connection-dash-length: 5;
+    --connection-arrow-size: 25;
+}
+
+.connecting {
+    cursor: crosshair;
+}

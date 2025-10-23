@@ -11,6 +11,8 @@ function draw() {
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     drawBalls(ctx);
+    drawConnections(ctx);
+    drawSelectionLine(ctx);
 }
 function animate() {
     draw();
@@ -60,14 +62,16 @@ window.onMessageFromBackend = (message) => {
     // Example: update canvas or something
 };
 
-// Send a message when clicking on a ball
+// Handle connections and messages on ball click
 canvas.addEventListener('click', async (e) => {
     const mouseX = e.clientX;
     const mouseY = e.clientY;
     balls.forEach(async (ball) => {
         const dist = Math.sqrt((mouseX - ball.x) ** 2 + (mouseY - ball.y) ** 2);
         if (dist < ball.radius) {
-            await window.sendToBackend('Ball clicked at ' + mouseX + ',' + mouseY);
+            handleConnectionClick(ball);
+            // Optionally send message
+            // await window.sendToBackend('Ball clicked at ' + mouseX + ',' + mouseY);
         }
     });
 });
