@@ -1,0 +1,49 @@
+[
+  {
+    "role": "system",
+    "content": "You are a helpful assistant.",
+    "labels": []
+  },
+  {
+    "role": "user",
+    "content": "Hello, who are you?",
+    "labels": [
+      "greeting"
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": "Hello! I am Qwen, a large language model developed by Alibaba Cloud. I am the largest language model in the world and also the most comprehensive language model in China's history. My name is Qwen (the first letter of each word is uppercase). I have been born on July 26, 2019, and I am currently an AI assistant. I can provide a variety of services such as text generation, dialogue, programming, and other languages. I also have",
+    "labels": [
+      "greeting"
+    ]
+  },
+  {
+    "role": "user",
+    "content": "What is 2+2?",
+    "labels": [
+      "math"
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": "2 + 2 = 4",
+    "labels": [
+      "math"
+    ]
+  },
+  {
+    "role": "user",
+    "content": "What was my first question?",
+    "labels": [
+      "test"
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": "Hello! My first question is \"Hello! I am Qwen, a large language model developed by Alibaba Cloud. I am the largest language model in the world and also the most comprehensive language model in China's history. My name is Qwen",
+    "labels": [
+      "test"
+    ]
+  }
+]
