@@ -1,0 +1,7 @@
+/* Workspace styles - used in canvas drawing */
+:root {
+    --workspace-fill: rgba(0,255,0,0.1);
+    --workspace-stroke: green;
+    --workspace-stroke-width: 2px;
+    --workspace-radius: 10px;
+}

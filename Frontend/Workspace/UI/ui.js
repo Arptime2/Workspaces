@@ -24,6 +24,7 @@ function adjustScale(factor) {
         ball.y = (ball.y - centerY) * (newScale / scale) + centerY;
         ball.radius *= newScale / scale;
     });
+    scaleWorkspaces(centerX, centerY, newScale, scale);
     scale = newScale;
     window.scale = scale;
 }
