@@ -6,8 +6,14 @@ class Node {
         this.id = id;
         this.name = 'Node ' + id; // Node name
         this.color = 'lightblue'; // Default color
-        this.label = ''; // Optional label
+        this.labels = []; // Array of labels
         this.outgoing = []; // IDs of outgoing connections
+        this.systemPrompt = ''; // System prompt
+        this.prompt = ''; // User prompt
+        this.tokenCount = 0; // Token count
+        this.contextLabels = []; // Array of context labels
+        this.contextCount = 0; // Context count
+        this.nodeType = 'default'; // Node type
     }
 }
 
