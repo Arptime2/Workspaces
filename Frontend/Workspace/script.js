@@ -230,14 +230,15 @@ canvas.addEventListener('click', async (e) => {
             const nameX = ball.x;
             const nameY = ball.y - ball.radius - 5;
             const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
-            if (nameDist < 20) { // Tolerance
+            if (nameDist < 20 * window.scale) { // Tolerance
                 window.editingItem = ball;
                 editingType = 'node';
                 window.isEditing = true;
                 editInput.textContent = ball.name;
-                editInput.style.left = (nameX - 50) + 'px'; // Center approx
-                editInput.style.top = (nameY - 10) + 'px';
-                editInput.style.display = 'block';
+                editInput.style.left = (nameX - 50 * window.scale) + 'px'; // Center approx
+                editInput.style.top = (nameY - 12 * window.scale) + 'px';
+                editInput.style.width = `${100 * window.scale}px`;
+                editInput.style.display = 'inline-block';
                 editInput.focus();
                 document.getSelection().selectAllChildren(editInput);
                 clickedOnBall = true; // Prevent other actions
@@ -251,14 +252,15 @@ canvas.addEventListener('click', async (e) => {
             const nameX = ws.x + ws.width / 2;
             const nameY = ws.y - 10;
             const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
-            if (nameDist < 30) { // Tolerance
+            if (nameDist < 30 * window.scale) { // Tolerance
                 window.editingItem = ws;
                 editingType = 'workspace';
                 window.isEditing = true;
                 editInput.textContent = ws.name;
-                editInput.style.left = (nameX - 50) + 'px';
-                editInput.style.top = (nameY - 10) + 'px';
-                editInput.style.display = 'block';
+                editInput.style.left = (nameX - 50 * window.scale) + 'px';
+                editInput.style.top = (nameY - 12 * window.scale) + 'px';
+                editInput.style.width = `${100 * window.scale}px`;
+                editInput.style.display = 'inline-block';
                 editInput.focus();
                 document.getSelection().selectAllChildren(editInput);
                 clickedOnBall = true; // Prevent other actions
@@ -321,20 +323,24 @@ window.addEventListener('resize', () => {
     canvas.height = window.innerHeight;
 });
 
-// Create edit div
-editInput = document.createElement('div');
+// Create edit paragraph
+window.editInput = document.createElement('p');
+editInput = window.editInput;
 editInput.contentEditable = 'true';
 editInput.style.position = 'absolute';
 editInput.style.display = 'none';
-editInput.style.font = '12px Arial';
+editInput.style.font = `${12 * window.scale}px Arial`;
 editInput.style.color = 'white';
 editInput.style.background = 'transparent';
 editInput.style.border = 'none';
 editInput.style.outline = 'none';
 editInput.style.zIndex = '2000';
-editInput.style.whiteSpace = 'nowrap';
 editInput.style.textAlign = 'center';
-editInput.style.width = '100px';
+editInput.style.padding = '0';
+editInput.style.margin = '0';
+editInput.style.width = `${100 * window.scale}px`;
+editInput.style.verticalAlign = 'baseline';
+editInput.style.display = 'inline-block';
 document.body.appendChild(editInput);
 
 editInput.addEventListener('blur', () => {

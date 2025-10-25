@@ -45,7 +45,7 @@ function drawBalls(ctx) {
         // Draw name
         if (!(window.isEditing && window.editingItem === ball)) {
             ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
+            ctx.font = `${12 * window.scale}px Arial`;
             ctx.textAlign = 'center';
             ctx.fillText(ball.name, ball.x, ball.y - ball.radius - 5);
         }

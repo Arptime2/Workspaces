@@ -26,6 +26,13 @@ function adjustScale(factor) {
     scaleWorkspaces(centerX, centerY, newScale, scale);
     scale = newScale;
     window.scale = scale;
+    if (window.editInput) {
+        window.editInput.style.font = `${12 * window.scale}px Arial`;
+        window.editInput.style.width = `${100 * window.scale}px`;
+        window.editInput.style.verticalAlign = 'baseline';
+        window.editInput.style.padding = '0';
+        window.editInput.style.margin = '0';
+    }
 }
 
 function startZoom(initialFactor) {

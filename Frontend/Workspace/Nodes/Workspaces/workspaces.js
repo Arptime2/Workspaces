@@ -24,7 +24,7 @@ function drawWorkspaces(ctx) {
         // Draw name
         if (!(window.isEditing && window.editingItem === ws)) {
             ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
+            ctx.font = `${12 * window.scale}px Arial`;
             ctx.textAlign = 'center';
             ctx.fillText(ws.name, ws.x + ws.width / 2, ws.y - 10);
         }
@@ -115,10 +115,10 @@ function updateWorkspaceSize(ws) {
         // If no nodes, set minimal size or remove, but for now keep as is
         return;
     }
-    const minX = Math.min(...nodes.map(n => n.x)) - 50;
-    const maxX = Math.max(...nodes.map(n => n.x)) + 50;
-    const minY = Math.min(...nodes.map(n => n.y)) - 50;
-    const maxY = Math.max(...nodes.map(n => n.y)) + 50;
+    const minX = Math.min(...nodes.map(n => n.x)) - 50 * window.scale;
+    const maxX = Math.max(...nodes.map(n => n.x)) + 50 * window.scale;
+    const minY = Math.min(...nodes.map(n => n.y)) - 50 * window.scale;
+    const maxY = Math.max(...nodes.map(n => n.y)) + 50 * window.scale;
     ws.x = minX;
     ws.y = minY;
     ws.width = maxX - minX;
@@ -130,8 +130,8 @@ function drawClosedOverlays(ctx) {
         if (ws.closed) {
             const radius = parseInt(getCSSVar('--workspace-radius'));
             const effectiveRadius = Math.min(radius, ws.width / 2, ws.height / 2);
-            ctx.fillStyle = 'green';
-            ctx.strokeStyle = 'green';
+            ctx.fillStyle = 'rgb(16, 46, 21)';
+            ctx.strokeStyle = 'rgb(16, 46, 21)';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(ws.x + effectiveRadius, ws.y);
