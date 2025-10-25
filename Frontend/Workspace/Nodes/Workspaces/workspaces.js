@@ -8,6 +8,7 @@ class Workspace {
         this.name = name || 'Workspace ' + id;
         this.description = description || '';
         this.nodeIds = nodeIds || [];
+        this.closed = false;
     }
 }
 
@@ -20,6 +21,13 @@ let workspaceStartX, workspaceStartY, workspaceEndX, workspaceEndY;
 function drawWorkspaces(ctx) {
     workspaces.forEach(ws => {
         drawRoundedRect(ctx, ws.x, ws.y, ws.width, ws.height);
+        // Draw name
+        if (!(window.isEditing && window.editingItem === ws)) {
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(ws.name, ws.x + ws.width / 2, ws.y - 10);
+        }
     });
     if (window.isDefiningWorkspace) {
         const x = Math.min(workspaceStartX, workspaceEndX);
@@ -55,7 +63,7 @@ function drawRoundedRect(ctx, x, y, width, height) {
     ctx.quadraticCurveTo(x, y, x + effectiveRadius, y);
     ctx.closePath();
     ctx.fill();
-    ctx.stroke();
+    // ctx.stroke(); // Remove stroke for closed overlays
 }
 
 function handleWorkspaceMouseDown(e) {
@@ -115,4 +123,29 @@ function updateWorkspaceSize(ws) {
     ws.y = minY;
     ws.width = maxX - minX;
     ws.height = maxY - minY;
+}
+
+function drawClosedOverlays(ctx) {
+    workspaces.forEach(ws => {
+        if (ws.closed) {
+            const radius = parseInt(getCSSVar('--workspace-radius'));
+            const effectiveRadius = Math.min(radius, ws.width / 2, ws.height / 2);
+            ctx.fillStyle = 'green';
+            ctx.strokeStyle = 'green';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(ws.x + effectiveRadius, ws.y);
+            ctx.lineTo(ws.x + ws.width - effectiveRadius, ws.y);
+            ctx.quadraticCurveTo(ws.x + ws.width, ws.y, ws.x + ws.width, ws.y + effectiveRadius);
+            ctx.lineTo(ws.x + ws.width, ws.y + ws.height - effectiveRadius);
+            ctx.quadraticCurveTo(ws.x + ws.width, ws.y + ws.height, ws.x + ws.width - effectiveRadius, ws.y + ws.height);
+            ctx.lineTo(ws.x + effectiveRadius, ws.y + ws.height);
+            ctx.quadraticCurveTo(ws.x, ws.y + ws.height, ws.x, ws.y + ws.height - effectiveRadius);
+            ctx.lineTo(ws.x, ws.y + effectiveRadius);
+            ctx.quadraticCurveTo(ws.x, ws.y, ws.x + effectiveRadius, ws.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+    });
 }

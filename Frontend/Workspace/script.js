@@ -12,6 +12,16 @@ let longPressTimer;
 let wasLongPress = false;
 window.isDefiningWorkspace = false;
 let justPlacedWorkspace = false;
+let clickCount = 0;
+let lastClickTime = 0;
+const tripleClickThreshold = 1000;
+let pendingTimeout;
+let pendingMouseX;
+let pendingMouseY;
+let editInput;
+window.editingItem;
+let editingType;
+window.isEditing = false;
 
 function draw() {
     ctx.fillStyle = 'black';
@@ -19,6 +29,7 @@ function draw() {
     drawWorkspaces(ctx);
     drawBalls(ctx);
     drawConnections(ctx);
+    drawClosedOverlays(ctx);
     drawSelectionLine(ctx);
 }
 
@@ -196,39 +207,149 @@ canvas.addEventListener('click', async (e) => {
     } // Prevent click after drag, long press, defining, or placement
     const mouseX = e.clientX;
     const mouseY = e.clientY;
+    const currentTime = Date.now();
+    if (currentTime - lastClickTime < tripleClickThreshold) {
+        clickCount++;
+    } else {
+        clickCount = 1;
+    }
+    lastClickTime = currentTime;
+    pendingMouseX = mouseX;
+    pendingMouseY = mouseY;
+
     let clickedOnBall = false;
     balls.forEach(async (ball) => {
-        const dist = Math.sqrt((mouseX - ball.x) ** 2 + (mouseY - ball.y) ** 2);
+        const dist = Math.sqrt((pendingMouseX - ball.x) ** 2 + (pendingMouseY - ball.y) ** 2);
         if (dist < ball.radius) {
             clickedOnBall = true;
             handleConnectionClick(ball);
             // Optionally send message
             // await window.sendToBackend('Ball clicked at ' + mouseX + ',' + mouseY);
+        } else {
+            // Check if clicked on name
+            const nameX = ball.x;
+            const nameY = ball.y - ball.radius - 5;
+            const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
+            if (nameDist < 20) { // Tolerance
+                window.editingItem = ball;
+                editingType = 'node';
+                window.isEditing = true;
+                editInput.textContent = ball.name;
+                editInput.style.left = (nameX - 50) + 'px'; // Center approx
+                editInput.style.top = (nameY - 10) + 'px';
+                editInput.style.display = 'block';
+                editInput.focus();
+                document.getSelection().selectAllChildren(editInput);
+                clickedOnBall = true; // Prevent other actions
+            }
         }
     });
+
+    // Check for workspace name click
     if (!clickedOnBall) {
-        // Check for overlap
-        const tooClose = balls.some(ball => {
-            const dist = Math.sqrt((mouseX - ball.x) ** 2 + (mouseY - ball.y) ** 2);
-            return dist < ball.radius + 20;
-        });
-        if (!tooClose) {
-            const newNode = new Node(mouseX, mouseY, 20 * window.scale, nextId++);
-            balls.push(newNode);
-            workspaces.forEach(ws => {
-                if (isNodeInWorkspace(newNode, ws)) {
-                    ws.nodeIds.push(newNode.id);
-                    updateWorkspaceSize(ws);
-                }
-            });
-            if (isConnecting) {
-                finishConnection(newNode);
+        for (let ws of workspaces) {
+            const nameX = ws.x + ws.width / 2;
+            const nameY = ws.y - 10;
+            const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
+            if (nameDist < 30) { // Tolerance
+                window.editingItem = ws;
+                editingType = 'workspace';
+                window.isEditing = true;
+                editInput.textContent = ws.name;
+                editInput.style.left = (nameX - 50) + 'px';
+                editInput.style.top = (nameY - 10) + 'px';
+                editInput.style.display = 'block';
+                editInput.focus();
+                document.getSelection().selectAllChildren(editInput);
+                clickedOnBall = true; // Prevent other actions
+                break;
             }
         }
     }
+
+    // Check for workspace triple-click
+    if (!clickedOnBall && clickCount === 3) {
+        clickCount = 0; // Reset
+        if (pendingTimeout) {
+            clearTimeout(pendingTimeout);
+            pendingTimeout = null;
+        }
+        for (let ws of workspaces) {
+            if (pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height) {
+                ws.closed = !ws.closed;
+                return; // Toggle and exit
+            }
+        }
+    }
+
+    // Clear any pending timeout and set new one
+    if (pendingTimeout) {
+        clearTimeout(pendingTimeout);
+    }
+    pendingTimeout = setTimeout(() => {
+        if (clickCount === 1 && !clickedOnBall) {
+            // Check if click is in a closed workspace
+            const inClosedWorkspace = workspaces.some(ws => ws.closed && pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height);
+            if (!inClosedWorkspace) {
+                // Check for overlap
+                const tooClose = balls.some(ball => {
+                    const dist = Math.sqrt((pendingMouseX - ball.x) ** 2 + (pendingMouseY - ball.y) ** 2);
+                    return dist < ball.radius + 20;
+                });
+                if (!tooClose) {
+                    const newNode = new Node(pendingMouseX, pendingMouseY, 20 * window.scale, nextId++);
+                    balls.push(newNode);
+                    workspaces.forEach(ws => {
+                        if (isNodeInWorkspace(newNode, ws)) {
+                            ws.nodeIds.push(newNode.id);
+                            updateWorkspaceSize(ws);
+                        }
+                    });
+                    if (isConnecting) {
+                        finishConnection(newNode);
+                    }
+                }
+            }
+        }
+        clickCount = 0;
+        pendingTimeout = null;
+    }, 200);
 });
 
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+});
+
+// Create edit div
+editInput = document.createElement('div');
+editInput.contentEditable = 'true';
+editInput.style.position = 'absolute';
+editInput.style.display = 'none';
+editInput.style.font = '12px Arial';
+editInput.style.color = 'white';
+editInput.style.background = 'transparent';
+editInput.style.border = 'none';
+editInput.style.outline = 'none';
+editInput.style.zIndex = '2000';
+editInput.style.whiteSpace = 'nowrap';
+editInput.style.textAlign = 'center';
+editInput.style.width = '100px';
+document.body.appendChild(editInput);
+
+editInput.addEventListener('blur', () => {
+    if (editingItem) {
+        editingItem.name = editInput.textContent;
+        editInput.style.display = 'none';
+        window.editingItem = null;
+        editingType = null;
+        window.isEditing = false;
+    }
+});
+
+editInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        editInput.blur();
+    }
 });

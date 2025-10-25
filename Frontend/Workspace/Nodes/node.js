@@ -5,6 +5,7 @@ class Node {
         this.radius = radius;
         this.id = id;
         this.name = 'Node ' + id; // Node name
+        this.description = ''; // Node description
         this.color = 'lightblue'; // Default color
         this.labels = []; // Array of labels
         this.outgoing = []; // IDs of outgoing connections
@@ -41,6 +42,13 @@ function drawBalls(ctx) {
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
         ctx.fill();
+        // Draw name
+        if (!(window.isEditing && window.editingItem === ball)) {
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(ball.name, ball.x, ball.y - ball.radius - 5);
+        }
     });
 }
 

@@ -44,7 +44,7 @@ function drawConnections(ctx) {
                 const startY = node.y + node.radius * Math.sin(angle);
                 const endX = other.x - other.radius * Math.cos(angle);
                 const endY = other.y - other.radius * Math.sin(angle);
-                drawLine(ctx, startX, startY, endX, endY, '--connection-line-color', false);
+                 drawLine(ctx, startX, startY, endX, endY, '--connection-line-color', false);
                 drawArrow(ctx, startX, startY, endX, endY);
             }
         });
