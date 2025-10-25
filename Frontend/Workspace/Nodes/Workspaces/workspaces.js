@@ -100,3 +100,19 @@ function scaleWorkspaces(centerX, centerY, newScale, oldScale) {
         ws.height *= newScale / oldScale;
     });
 }
+
+function updateWorkspaceSize(ws) {
+    const nodes = balls.filter(ball => ws.nodeIds.includes(ball.id));
+    if (nodes.length === 0) {
+        // If no nodes, set minimal size or remove, but for now keep as is
+        return;
+    }
+    const minX = Math.min(...nodes.map(n => n.x)) - 50;
+    const maxX = Math.max(...nodes.map(n => n.x)) + 50;
+    const minY = Math.min(...nodes.map(n => n.y)) - 50;
+    const maxY = Math.max(...nodes.map(n => n.y)) + 50;
+    ws.x = minX;
+    ws.y = minY;
+    ws.width = maxX - minX;
+    ws.height = maxY - minY;
+}

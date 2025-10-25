@@ -1,9 +1,8 @@
 let scale = 1;
 window.scale = scale;
-let zooming = false;
-let zoomInterval;
-let zoomStartTime;
-let baseFactor;
+window.zooming = false;
+window.zoomStartTime;
+window.baseFactor;
 
 function zoomIn() {
     adjustScale(1.05);
@@ -30,23 +29,14 @@ function adjustScale(factor) {
 }
 
 function startZoom(initialFactor) {
-    if (zooming) return;
-    zooming = true;
-    baseFactor = initialFactor;
-    zoomStartTime = Date.now();
-    zoomInterval = setInterval(() => {
-        const elapsed = (Date.now() - zoomStartTime) / 1000;
-        const accel = initialFactor > 1 ? 0.05 : -0.05; // Positive for in, negative for out
-        const currentFactor = baseFactor + elapsed * accel;
-        adjustScale(currentFactor);
-    }, 50);
+    if (window.zooming) return;
+    window.zooming = true;
+    window.baseFactor = initialFactor;
+    window.zoomStartTime = Date.now();
 }
 
 function stopZoom() {
-    if (zooming) {
-        zooming = false;
-        clearInterval(zoomInterval);
-    }
+    window.zooming = false;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,13 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomInBtn = document.createElement('button');
     zoomInBtn.className = 'zoom-btn';
     zoomInBtn.textContent = '+';
-    zoomInBtn.onmousedown = () => startZoom(1.05);
+    zoomInBtn.onmousedown = () => startZoom(1.02);
     zoomInBtn.onmouseup = stopZoom;
     zoomInBtn.onmouseleave = stopZoom; // Stop if mouse leaves button
     const zoomOutBtn = document.createElement('button');
     zoomOutBtn.className = 'zoom-btn';
     zoomOutBtn.textContent = '-';
-    zoomOutBtn.onmousedown = () => startZoom(0.95);
+    zoomOutBtn.onmousedown = () => startZoom(0.98);
     zoomOutBtn.onmouseup = stopZoom;
     zoomOutBtn.onmouseleave = stopZoom;
     buttonsDiv.appendChild(zoomInBtn);

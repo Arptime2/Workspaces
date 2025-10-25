@@ -23,6 +23,12 @@ function draw() {
 }
 
 function animate() {
+    if (window.zooming) {
+        const elapsed = (Date.now() - window.zoomStartTime) / 1000;
+        const accel = window.baseFactor > 1 ? 0.02 : -0.02;
+        const currentFactor = window.baseFactor + elapsed * accel;
+        adjustScale(currentFactor);
+    }
     draw();
     requestAnimationFrame(animate);
 }
@@ -38,6 +44,13 @@ canvas.addEventListener('mousedown', (e) => {
         const y = Math.min(e.clientY, workspaceStartY);
         const id = nextWorkspaceId++;
         workspaces.push(new Workspace(x, y, w, h, id, 'Workspace ' + id, '', []));
+        const ws = workspaces[workspaces.length - 1];
+        balls.forEach(ball => {
+            if (isNodeInWorkspace(ball, ws)) {
+                ws.nodeIds.push(ball.id);
+            }
+        });
+        updateWorkspaceSize(ws);
         window.isDefiningWorkspace = false;
         justPlacedWorkspace = true;
         return;
@@ -130,6 +143,13 @@ document.addEventListener('mouseup', (e) => {
         balls.forEach(ball => {
             ball.outgoing = ball.outgoing.filter(id => id !== draggedBall.id);
         });
+        // update workspaces
+        workspaces.forEach(ws => {
+            if (ws.nodeIds.includes(draggedBall.id)) {
+                ws.nodeIds = ws.nodeIds.filter(id => id !== draggedBall.id);
+                updateWorkspaceSize(ws);
+            }
+        });
     } else if (draggedWorkspace && isOverDeleteButton(mouseX, mouseY)) {
         // delete workspace and its nodes
         workspaces = workspaces.filter(ws => ws !== draggedWorkspace);
@@ -139,6 +159,21 @@ document.addEventListener('mouseup', (e) => {
             balls.forEach(ball => {
                 ball.outgoing = ball.outgoing.filter(id => id !== node.id);
             });
+        });
+    }
+    // Update workspaces for node placement
+    if (draggedBall && balls.includes(draggedBall)) {
+        workspaces.forEach(ws => {
+            // Resync nodeIds based on current positions
+            ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws)).map(ball => ball.id);
+            updateWorkspaceSize(ws);
+        });
+    }
+    // Update workspaces for workspace placement
+    if (draggedWorkspace) {
+        workspaces.forEach(ws => {
+            ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws)).map(ball => ball.id);
+            updateWorkspaceSize(ws);
         });
     }
     mouseDown = false;
@@ -180,6 +215,12 @@ canvas.addEventListener('click', async (e) => {
         if (!tooClose) {
             const newNode = new Node(mouseX, mouseY, 20 * window.scale, nextId++);
             balls.push(newNode);
+            workspaces.forEach(ws => {
+                if (isNodeInWorkspace(newNode, ws)) {
+                    ws.nodeIds.push(newNode.id);
+                    updateWorkspaceSize(ws);
+                }
+            });
             if (isConnecting) {
                 finishConnection(newNode);
             }
