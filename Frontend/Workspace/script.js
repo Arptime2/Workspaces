@@ -69,7 +69,7 @@ canvas.addEventListener('mousedown', (e) => {
     }
 });
 
-canvas.addEventListener('mousemove', (e) => {
+document.addEventListener('mousemove', (e) => {
     if (!mouseInitialized) {
         prevMouseX = e.clientX;
         prevMouseY = e.clientY;
@@ -110,14 +110,37 @@ canvas.addEventListener('mousemove', (e) => {
 
 canvas.addEventListener('mouseleave', () => {
     mouseDown = false;
-    draggedBall = null;
-    isDragging = false;
-    draggedWorkspace = null;
-    draggedNodes = [];
     window.isDefiningWorkspace = false;
 });
 
-document.addEventListener('mouseup', () => {
+function isOverDeleteButton(x, y) {
+    const zoomOutBtn = document.querySelector('.zoom-btn:nth-child(2)');
+    if (!zoomOutBtn) return false;
+    const rect = zoomOutBtn.getBoundingClientRect();
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+document.addEventListener('mouseup', (e) => {
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+    if (draggedBall && isOverDeleteButton(mouseX, mouseY)) {
+        // delete node
+        balls = balls.filter(ball => ball !== draggedBall);
+        // remove from outgoing connections
+        balls.forEach(ball => {
+            ball.outgoing = ball.outgoing.filter(id => id !== draggedBall.id);
+        });
+    } else if (draggedWorkspace && isOverDeleteButton(mouseX, mouseY)) {
+        // delete workspace and its nodes
+        workspaces = workspaces.filter(ws => ws !== draggedWorkspace);
+        draggedNodes.forEach(node => {
+            balls = balls.filter(ball => ball !== node);
+            // remove connections to this node
+            balls.forEach(ball => {
+                ball.outgoing = ball.outgoing.filter(id => id !== node.id);
+            });
+        });
+    }
     mouseDown = false;
     draggedBall = null;
     isDragging = false;
