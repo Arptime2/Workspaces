@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { handleMessage, handlePoll, handleSendMessage } = require('./Communication/communication');
 const { spawnShell } = require('../Terminal/terminal');
+const { saveWorkspaces, loadWorkspace } = require('../Save/save');
 
 function parseMessage(message, prefix) {
     return message.slice(prefix.length);
@@ -29,6 +30,23 @@ global.onMessageFromFrontend = (message) => {
     } else if (message.startsWith('input:')) {
         const input = parseMessage(message, 'input:') + '\n';
         if (global.shellProcess) global.shellProcess.stdin.write(input);
+    } else {
+        try {
+            const msg = JSON.parse(message);
+            if (msg.type === 'save') {
+                saveWorkspaces(msg.data);
+                global.sendToFrontend('save_success');
+            } else if (msg.type === 'load_workspace') {
+                console.log('Loading workspace for:', msg.name);
+                const data = loadWorkspace(msg.name);
+                console.log('Loaded data for frontend:', data ? 'present' : 'null');
+                const messageToSend = JSON.stringify({type: 'workspace_data', data});
+                console.log('Sending to frontend:', messageToSend.substring(0, 200) + '...');
+                global.sendToFrontend(messageToSend);
+            }
+        } catch (e) {
+            console.error('Invalid message format:', e);
+        }
     }
 };
 
@@ -46,7 +64,7 @@ const server = http.createServer((req, res) => {
         return;
     }
     let filePath;
-    if (req.url.startsWith('/Communication')) {
+    if (req.url.startsWith('/Communication') || req.url.startsWith('/Save/')) {
         filePath = path.join(__dirname, '../../Frontend', req.url);
     } else {
         filePath = path.join(__dirname, '../../Frontend/Workspace', req.url === '/' ? 'index.html' : req.url);

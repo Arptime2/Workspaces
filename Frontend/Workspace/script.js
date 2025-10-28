@@ -1,7 +1,49 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+
+// Placeholder for autoSave, will be overridden by save.js
+window.autoSave = () => {};
+window.reconstructingItem = null;
+if (window.visualViewport) {
+    canvas.width = window.visualViewport.width;
+    canvas.height = window.visualViewport.height;
+    document.body.style.height = window.visualViewport.height + 'px';
+    document.documentElement.style.height = window.visualViewport.height + 'px';
+} else {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.style.height = window.innerHeight + 'px';
+    document.documentElement.style.height = window.innerHeight + 'px';
+}
+window.panOffsetX = 0;
+window.panOffsetY = 0;
+window.crosshairVirtualX = canvas.width / 2;
+window.crosshairVirtualY = canvas.height / 2;
+
+window.getItemUnderCrosshair = function() {
+    const screenX = window.crosshairVirtualX - window.panOffsetX;
+    const screenY = window.crosshairVirtualY - window.panOffsetY;
+    // Check nodes
+    for (let ball of balls) {
+        const dist = Math.sqrt((screenX - ball.x) ** 2 + (screenY - ball.y) ** 2);
+        if (dist < ball.radius) {
+            return { type: 'node', item: ball };
+        }
+    }
+    // Check workspaces, innermost
+    let candidate = null;
+    for (let ws of workspaces) {
+        if (screenX >= ws.x && screenX <= ws.x + ws.width && screenY >= ws.y && screenY <= ws.y + ws.height) {
+            if (!candidate || (ws.width * ws.height < candidate.width * candidate.height)) {
+                candidate = ws;
+            }
+        }
+    }
+    if (candidate) {
+        return { type: 'workspace', item: candidate };
+    }
+    return null;
+};
 initBalls(canvas);
 let prevMouseX = 0;
 let prevMouseY = 0;
@@ -43,6 +85,7 @@ function draw() {
     drawConnections(ctx);
     drawClosedOverlays(ctx);
     drawSelectionLine(ctx);
+    window.drawCrosshair(ctx);
 }
 
 function animate() {
@@ -73,9 +116,15 @@ canvas.addEventListener('mousedown', (e) => {
                 ws.nodeIds.push(ball.id);
             }
         });
+        workspaces.forEach(otherWs => {
+            if (otherWs !== ws && isWorkspaceInWorkspace(otherWs, ws)) {
+                ws.workspaceIds.push(otherWs.id);
+            }
+        });
         updateWorkspaceSize(ws);
         window.isDefiningWorkspace = false;
         justPlacedWorkspace = true;
+        autoSave();
         return;
     }
     mouseDown = true;
@@ -95,11 +144,20 @@ canvas.addEventListener('mousedown', (e) => {
      } else if (ws && !draggedBall) {
         // On workspace, start timer for dragging
         longPressTimer = setTimeout(() => {
-            if (!hasMoved) {
-                draggedWorkspace = ws;
-                draggedNodes = balls.filter(ball => ws.nodeIds.includes(ball.id));
-            }
-        }, 300);
+             if (!hasMoved) {
+                 draggedWorkspace = ws;
+                 draggedNodes = getAllChildNodes(ws);
+                 draggedChildWorkspaces = getAllChildWorkspaces(ws);
+                 draggedChildWorkspaces.forEach(child => {
+                     child.offsetX = child.x - draggedWorkspace.x;
+                     child.offsetY = child.y - draggedWorkspace.y;
+                 });
+                 draggedNodes.forEach(node => {
+                     node.offsetX = node.x - draggedWorkspace.x;
+                     node.offsetY = node.y - draggedWorkspace.y;
+                 });
+             }
+         }, 300);
     }
 });
 
@@ -133,6 +191,10 @@ document.addEventListener('mousemove', (e) => {
             ball.y += deltaY;
         });
         panWorkspaces(deltaX, deltaY);
+        window.panOffsetX += deltaX;
+        window.panOffsetY += deltaY;
+        window.crosshairVirtualX += deltaX;
+        window.crosshairVirtualY += deltaY;
     }
     if (window.isDefiningWorkspace) {
         workspaceEndX = e.clientX;
@@ -171,9 +233,10 @@ document.addEventListener('mouseup', (e) => {
                 updateWorkspaceSize(ws);
             }
         });
+        autoSave();
     } else if (draggedWorkspace && isOverDeleteButton(mouseX, mouseY)) {
-        // delete workspace and its nodes
-        workspaces = workspaces.filter(ws => ws !== draggedWorkspace);
+        // delete workspace and its nodes and child workspaces
+        workspaces = workspaces.filter(ws => ws !== draggedWorkspace && !getAllChildWorkspaces(draggedWorkspace).includes(ws));
         draggedNodes.forEach(node => {
             balls = balls.filter(ball => ball !== node);
             // remove connections to this node
@@ -181,6 +244,11 @@ document.addEventListener('mouseup', (e) => {
                 ball.outgoing = ball.outgoing.filter(id => id !== node.id);
             });
         });
+        // Also delete nodes in child workspaces
+        getAllChildWorkspaces(draggedWorkspace).forEach(childWs => {
+            balls = balls.filter(ball => !childWs.nodeIds.includes(ball.id));
+        });
+        autoSave();
     }
     // Update workspaces for node placement
     if (draggedBall && balls.includes(draggedBall)) {
@@ -188,19 +256,26 @@ document.addEventListener('mouseup', (e) => {
             ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws) && !workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
             updateWorkspaceSize(ws);
         });
+        autoSave();
     }
     // Update workspaces for workspace placement
     if (draggedWorkspace) {
+        const draggedTree = [draggedWorkspace, ...draggedChildWorkspaces];
         workspaces.forEach(ws => {
-            ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws) && !workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
-            updateWorkspaceSize(ws);
+            if (!draggedTree.includes(ws)) {
+                ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws) && !workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
+                ws.workspaceIds = workspaces.filter(other => other !== ws && isWorkspaceInWorkspace(other, ws)).map(other => other.id);
+                updateWorkspaceSize(ws);
+            }
         });
+        autoSave();
     }
     mouseDown = false;
     draggedBall = null;
     isDragging = false;
     draggedWorkspace = null;
     draggedNodes = [];
+    draggedChildWorkspaces = [];
     clearTimeout(longPressTimer);
     if (window.isDefiningWorkspace) {
         // Continue defining, don't place yet
@@ -234,25 +309,62 @@ canvas.addEventListener('click', async (e) => {
             handleConnectionClick(ball);
             // Optionally send message
             // await window.sendToBackend('Ball clicked at ' + mouseX + ',' + mouseY);
-        } else {
-            // Check if clicked on name
-            const nameX = ball.x;
-            const nameY = ball.y - ball.radius - 5;
-            const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
-            if (nameDist < 20 * window.scale) { // Tolerance
-                window.editingItem = ball;
-                editingType = 'node';
-                window.isEditing = true;
-                editInput.textContent = ball.name;
-                editInput.style.left = (nameX - 50 * window.scale) + 'px'; // Center approx
-                editInput.style.top = (nameY - 12 * window.scale) + 'px';
-                editInput.style.width = `${100 * window.scale}px`;
-                editInput.style.display = 'inline-block';
-                editInput.focus();
-                document.getSelection().selectAllChildren(editInput);
-                clickedOnBall = true; // Prevent other actions
+            } else {
+                // Check if clicked on name
+                const nameX = ball.x;
+                const nameY = ball.y - ball.radius - 5;
+                const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
+                 if (nameDist < 20 * window.scale) { // Tolerance
+                     const under = getItemUnderCrosshair();
+                     if (under && under.type === 'node' && under.item === ball) {
+                         window.editingItem = ball;
+                         editingType = 'node_description';
+                         window.isEditing = true;
+                         editInput.textContent = ball.description;
+                         editInput.style.left = (nameX - 50 * window.scale) + 'px'; // Center approx
+                         editInput.style.top = (nameY - 12 * window.scale) + 'px';
+                         editInput.style.width = `${100 * window.scale}px`;
+                         editInput.style.display = 'inline-block';
+                         editInput.focus();
+                         document.getSelection().selectAllChildren(editInput);
+                         clickedOnBall = true; // Prevent other actions
+                     } else {
+                         window.editingItem = ball;
+                         editingType = 'node';
+                         window.isEditing = true;
+                         editInput.textContent = ball.name;
+                         editInput.style.left = (nameX - 50 * window.scale) + 'px'; // Center approx
+                         editInput.style.top = (nameY - 12 * window.scale) + 'px';
+                         editInput.style.width = `${100 * window.scale}px`;
+                         editInput.style.display = 'inline-block';
+                         editInput.focus();
+                         document.getSelection().selectAllChildren(editInput);
+                         clickedOnBall = true; // Prevent other actions
+                     }
+                 }
+                 // Check if clicked on description
+                 if (!clickedOnBall) {
+                     const under = getItemUnderCrosshair();
+                     if (under && under.type === 'node' && under.item === ball) {
+                         const descX = ball.x;
+                         const descY = ball.y - ball.radius - 20;
+                         const descDist = Math.sqrt((pendingMouseX - descX) ** 2 + (pendingMouseY - descY) ** 2);
+                         if (descDist < 20 * window.scale) {
+                             window.editingItem = ball;
+                             editingType = 'node_description';
+                             window.isEditing = true;
+                             editInput.textContent = ball.description;
+                             editInput.style.left = (descX - 50 * window.scale) + 'px';
+                             editInput.style.top = (descY - 12 * window.scale) + 'px';
+                             editInput.style.width = `${100 * window.scale}px`;
+                             editInput.style.display = 'inline-block';
+                             editInput.focus();
+                             document.getSelection().selectAllChildren(editInput);
+                             clickedOnBall = true; // Prevent other actions
+                         }
+                     }
+                 }
             }
-        }
     });
 
     // Check for workspace name click
@@ -261,20 +373,59 @@ canvas.addEventListener('click', async (e) => {
             const nameX = ws.x + ws.width / 2;
             const nameY = ws.y - 10;
             const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
-            if (nameDist < 30 * window.scale) { // Tolerance
-                window.editingItem = ws;
-                editingType = 'workspace';
-                window.isEditing = true;
-                editInput.textContent = ws.name;
-                editInput.style.left = (nameX - 50 * window.scale) + 'px';
-                editInput.style.top = (nameY - 12 * window.scale) + 'px';
-                editInput.style.width = `${100 * window.scale}px`;
-                editInput.style.display = 'inline-block';
-                editInput.focus();
-                document.getSelection().selectAllChildren(editInput);
-                clickedOnBall = true; // Prevent other actions
-                break;
-            }
+             if (nameDist < 30 * window.scale) { // Tolerance
+                 const under = getItemUnderCrosshair();
+                 if (under && under.type === 'workspace' && under.item === ws) {
+                     window.editingItem = ws;
+                     editingType = 'workspace_description';
+                     window.isEditing = true;
+                     editInput.textContent = ws.description;
+                     editInput.style.left = (nameX - 50 * window.scale) + 'px';
+                     editInput.style.top = (nameY - 12 * window.scale) + 'px';
+                     editInput.style.width = `${100 * window.scale}px`;
+                     editInput.style.display = 'inline-block';
+                     editInput.focus();
+                     document.getSelection().selectAllChildren(editInput);
+                     clickedOnBall = true; // Prevent other actions
+                     break;
+                 } else {
+                     window.editingItem = ws;
+                     editingType = 'workspace';
+                     window.isEditing = true;
+                     editInput.textContent = ws.name;
+                     editInput.style.left = (nameX - 50 * window.scale) + 'px';
+                     editInput.style.top = (nameY - 12 * window.scale) + 'px';
+                     editInput.style.width = `${100 * window.scale}px`;
+                     editInput.style.display = 'inline-block';
+                     editInput.focus();
+                     document.getSelection().selectAllChildren(editInput);
+                     clickedOnBall = true; // Prevent other actions
+                     break;
+                 }
+             }
+             // Check for workspace description click
+             if (!clickedOnBall) {
+                 const under = getItemUnderCrosshair();
+                 if (under && under.type === 'workspace' && under.item === ws) {
+                     const descX = ws.x + ws.width / 2;
+                     const descY = ws.y - 25;
+                     const descDist = Math.sqrt((pendingMouseX - descX) ** 2 + (pendingMouseY - descY) ** 2);
+                     if (descDist < 30 * window.scale) {
+                         window.editingItem = ws;
+                         editingType = 'workspace_description';
+                         window.isEditing = true;
+                         editInput.textContent = ws.description;
+                         editInput.style.left = (descX - 50 * window.scale) + 'px';
+                         editInput.style.top = (descY - 12 * window.scale) + 'px';
+                         editInput.style.width = `${100 * window.scale}px`;
+                         editInput.style.display = 'inline-block';
+                         editInput.focus();
+                         document.getSelection().selectAllChildren(editInput);
+                         clickedOnBall = true; // Prevent other actions
+                         break;
+                     }
+                 }
+             }
         }
     }
 
@@ -288,6 +439,7 @@ canvas.addEventListener('click', async (e) => {
         for (let ws of workspaces) {
             if (pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height) {
                 ws.closed = !ws.closed;
+                autoSave();
                 return; // Toggle and exit
             }
         }
@@ -319,6 +471,7 @@ canvas.addEventListener('click', async (e) => {
                     if (isConnecting) {
                         finishConnection(newNode);
                     }
+                    autoSave();
                 }
             }
         }
@@ -327,10 +480,21 @@ canvas.addEventListener('click', async (e) => {
     }, 200);
 });
 
-window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-});
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        canvas.width = window.visualViewport.width;
+        canvas.height = window.visualViewport.height;
+        document.body.style.height = window.visualViewport.height + 'px';
+        document.documentElement.style.height = window.visualViewport.height + 'px';
+    });
+} else {
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        document.body.style.height = window.innerHeight + 'px';
+        document.documentElement.style.height = window.innerHeight + 'px';
+    });
+}
 
 // Create edit paragraph
 window.editInput = document.createElement('p');
@@ -353,8 +517,28 @@ editInput.style.display = 'inline-block';
 document.body.appendChild(editInput);
 
 editInput.addEventListener('blur', () => {
-    if (editingItem) {
-        editingItem.name = editInput.textContent;
+    if (window.editingItem) {
+        let nameChanged = false;
+        let newName = '';
+        if (editingType === 'node') {
+            editingItem.name = editInput.textContent;
+        } else if (editingType === 'node_description') {
+            editingItem.description = editInput.textContent;
+        } else if (editingType === 'workspace') {
+            const oldName = editingItem.name;
+            editingItem.name = editInput.textContent;
+            newName = editingItem.name;
+            nameChanged = newName !== oldName;
+        } else if (editingType === 'workspace_description') {
+            editingItem.description = editInput.textContent;
+        }
+        if (nameChanged) {
+            // Check if saved workspace exists
+            window.reconstructingItem = editingItem;
+            window.sendToBackend(JSON.stringify({type: 'load_workspace', name: newName}));
+        } else {
+            autoSave();
+        }
         editInput.style.display = 'none';
         window.editingItem = null;
         editingType = null;

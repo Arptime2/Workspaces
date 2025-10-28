@@ -28,6 +28,7 @@ function finishConnection(secondNode) {
             // Add new connection
             firstNode.outgoing.push(secondNode.id);
         }
+        autoSave();
     }
     firstNode = null;
     isConnecting = false;
@@ -44,7 +45,7 @@ function drawConnections(ctx) {
                 const startY = node.y + node.radius * Math.sin(angle);
                 const endX = other.x - other.radius * Math.cos(angle);
                 const endY = other.y - other.radius * Math.sin(angle);
-                 drawLine(ctx, startX, startY, endX, endY, '--connection-line-color', false);
+                drawLine(ctx, startX, startY, endX, endY, 'white', false);
                 drawArrow(ctx, startX, startY, endX, endY);
             }
         });
@@ -55,17 +56,16 @@ function drawSelectionLine(ctx) {
     if (isConnecting && firstNode) {
         const allConnections = getAllConnections();
         const closeSameDirection = allConnections.some(conn => conn.from === firstNode.id && isCloseToLine(currentMouseX, currentMouseY, balls.find(b => b.id === conn.from), balls.find(b => b.id === conn.to)));
-        const colorVar = closeSameDirection ? '--connection-delete-color' : '--connection-dotted-color';
-        drawLine(ctx, firstNode.x, firstNode.y, currentMouseX, currentMouseY, colorVar, true);
+        const color = closeSameDirection ? 'red' : 'white';
+        drawLine(ctx, firstNode.x, firstNode.y, currentMouseX, currentMouseY, color, true);
     }
 }
 
 function drawLine(ctx, x1, y1, x2, y2, color, dotted) {
-    ctx.strokeStyle = getCSSVar(color);
-    ctx.lineWidth = parseInt(getCSSVar('--connection-line-width')) * (window.scale || 1);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 6 * (window.scale || 1);
     if (dotted) {
-        const dash = parseInt(getCSSVar('--connection-dash-length'));
-        ctx.setLineDash([dash, dash]);
+        ctx.setLineDash([5, 5]);
     } else {
         ctx.setLineDash([]);
     }
@@ -80,10 +80,10 @@ function getCSSVar(varName) {
 }
 
 function drawArrow(ctx, x1, y1, x2, y2) {
-    const headlen = parseInt(getCSSVar('--connection-arrow-size')) * (window.scale || 1);
+    const headlen = 25 * (window.scale || 1);
     const angle = Math.atan2(y2 - y1, x2 - x1);
-    ctx.strokeStyle = getCSSVar('--connection-arrow-color');
-    ctx.lineWidth = parseInt(getCSSVar('--connection-line-width')) * (window.scale || 1);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 6 * (window.scale || 1);
     ctx.beginPath();
     ctx.moveTo(x2, y2);
     ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));

@@ -1,32 +1,83 @@
 class Workspace {
-    constructor(x, y, width, height, id, name, description, nodeIds) {
+    constructor(x, y, width, height, id, name, description, nodeIds, workspaceIds) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
         this.id = id;
         this.name = name || 'Workspace ' + id;
-        this.description = description || '';
+        this.description = description || 'Workspace Description';
         this.nodeIds = nodeIds || [];
+        this.workspaceIds = workspaceIds || [];
         this.closed = false;
     }
 }
 
 let workspaces = [];
+window.workspaces = workspaces;
 let nextWorkspaceId = 0;
+window.nextWorkspaceId = nextWorkspaceId;
 let draggedWorkspace = null;
 let draggedNodes = [];
+let draggedChildWorkspaces = [];
 let workspaceStartX, workspaceStartY, workspaceEndX, workspaceEndY;
 
+function isWorkspaceInWorkspace(childWs, parentWs) {
+    return childWs.x >= parentWs.x && childWs.x + childWs.width <= parentWs.x + parentWs.width &&
+           childWs.y >= parentWs.y && childWs.y + childWs.height <= parentWs.y + parentWs.height;
+}
+
+function getAllChildWorkspaces(ws) {
+    let children = [];
+    ws.workspaceIds.forEach(id => {
+        const child = workspaces.find(w => w.id === id);
+        if (child) {
+            children.push(child);
+            children = children.concat(getAllChildWorkspaces(child));
+        }
+    });
+    return children;
+}
+
+function getAllChildNodes(ws) {
+    let nodes = ws.nodeIds.map(id => balls.find(b => b.id === id)).filter(b => b);
+    ws.workspaceIds.forEach(id => {
+        const child = workspaces.find(w => w.id === id);
+        if (child) {
+            nodes = nodes.concat(getAllChildNodes(child));
+        }
+    });
+    return nodes;
+}
+
+function drawWorkspace(ws, ctx) {
+    drawRoundedRect(ctx, ws.x, ws.y, ws.width, ws.height);
+    // Draw name
+    if (!(window.isEditing && window.editingItem === ws)) {
+        ctx.fillStyle = 'white';
+        ctx.font = `${12 * window.scale}px Arial`;
+        ctx.textAlign = 'center';
+        // Draw description if under crosshair
+        const under = window.getItemUnderCrosshair();
+        if (under && under.type === 'workspace' && under.item === ws) {
+            ctx.fillText(ws.description, ws.x + ws.width / 2, ws.y - 25);
+        }
+        ctx.fillText(ws.name, ws.x + ws.width / 2, ws.y - 10);
+    }
+    // Draw children
+    ws.workspaceIds.forEach(id => {
+        const child = workspaces.find(w => w.id === id);
+        if (child) {
+            drawWorkspace(child, ctx);
+        }
+    });
+}
+
 function drawWorkspaces(ctx) {
+    // Draw top-level workspaces (those not in any other)
     workspaces.forEach(ws => {
-        drawRoundedRect(ctx, ws.x, ws.y, ws.width, ws.height);
-        // Draw name
-        if (!(window.isEditing && window.editingItem === ws)) {
-            ctx.fillStyle = 'white';
-            ctx.font = `${12 * window.scale}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.fillText(ws.name, ws.x + ws.width / 2, ws.y - 10);
+        if (!workspaces.some(other => other.workspaceIds.includes(ws.id))) {
+            drawWorkspace(ws, ctx);
         }
     });
     if (window.isDefiningWorkspace) {
@@ -69,12 +120,15 @@ function drawRoundedRect(ctx, x, y, width, height) {
 function handleWorkspaceMouseDown(e) {
     const mouseX = e.clientX;
     const mouseY = e.clientY;
+    let candidate = null;
     for (let ws of workspaces) {
         if (mouseX >= ws.x && mouseX <= ws.x + ws.width && mouseY >= ws.y && mouseY <= ws.y + ws.height) {
-            return ws;
+            if (!candidate || (ws.width * ws.height < candidate.width * candidate.height)) {
+                candidate = ws;
+            }
         }
     }
-    return null;
+    return candidate;
 }
 
 function isNodeInWorkspace(ball, ws) {
@@ -85,10 +139,14 @@ function handleWorkspaceMouseMove(deltaX, deltaY) {
     if (draggedWorkspace) {
         draggedWorkspace.x += deltaX;
         draggedWorkspace.y += deltaY;
-        // Move only the initially contained nodes
+        // Set positions relative to draggedWorkspace
         draggedNodes.forEach(ball => {
-            ball.x += deltaX;
-            ball.y += deltaY;
+            ball.x = draggedWorkspace.x + ball.offsetX;
+            ball.y = draggedWorkspace.y + ball.offsetY;
+        });
+        draggedChildWorkspaces.forEach(child => {
+            child.x = draggedWorkspace.x + child.offsetX;
+            child.y = draggedWorkspace.y + child.offsetY;
         });
     }
 }
@@ -110,19 +168,30 @@ function scaleWorkspaces(centerX, centerY, newScale, oldScale) {
 }
 
 function updateWorkspaceSize(ws) {
-    const nodes = balls.filter(ball => ws.nodeIds.includes(ball.id));
-    if (nodes.length === 0) {
-        // If no nodes, set minimal size or remove, but for now keep as is
+    const allNodes = getAllChildNodes(ws);
+    const childWorkspaces = getAllChildWorkspaces(ws);
+    if (allNodes.length === 0 && childWorkspaces.length === 0) {
+        // If no content, keep as is
         return;
     }
-    const minX = Math.min(...nodes.map(n => n.x)) - 50 * window.scale;
-    const maxX = Math.max(...nodes.map(n => n.x)) + 50 * window.scale;
-    const minY = Math.min(...nodes.map(n => n.y)) - 50 * window.scale;
-    const maxY = Math.max(...nodes.map(n => n.y)) + 50 * window.scale;
-    ws.x = minX;
-    ws.y = minY;
-    ws.width = maxX - minX;
-    ws.height = maxY - minY;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    allNodes.forEach(n => {
+        minX = Math.min(minX, n.x);
+        maxX = Math.max(maxX, n.x);
+        minY = Math.min(minY, n.y);
+        maxY = Math.max(maxY, n.y);
+    });
+    childWorkspaces.forEach(cws => {
+        minX = Math.min(minX, cws.x);
+        maxX = Math.max(maxX, cws.x + cws.width);
+        minY = Math.min(minY, cws.y);
+        maxY = Math.max(maxY, cws.y + cws.height);
+    });
+    if (minX === Infinity) return; // No content
+    ws.x = minX - 50 * window.scale;
+    ws.y = minY - 50 * window.scale;
+    ws.width = (maxX - minX) + 100 * window.scale;
+    ws.height = (maxY - minY) + 100 * window.scale;
 }
 
 function drawClosedOverlays(ctx) {

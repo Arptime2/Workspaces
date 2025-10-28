@@ -5,7 +5,7 @@ class Node {
         this.radius = radius;
         this.id = id;
         this.name = 'Node ' + id; // Node name
-        this.description = ''; // Node description
+        this.description = 'Node Description'; // Node description
         this.color = 'lightblue'; // Default color
         this.labels = []; // Array of labels
         this.outgoing = []; // IDs of outgoing connections
@@ -19,9 +19,11 @@ class Node {
 }
 
 let balls = [];
+window.balls = balls;
 let draggedBall = null;
 let isDragging = false;
 let nextId = 0;
+window.nextId = nextId;
 
 function initBalls(canvas) {
     for (let i = 0; i < 5; i++) {
@@ -36,6 +38,7 @@ function initBalls(canvas) {
 
 function drawBalls(ctx) {
     ctx.shadowBlur = 20;
+    const under = window.getItemUnderCrosshair();
     balls.forEach(ball => {
         ctx.shadowColor = ball.color;
         ctx.fillStyle = ball.color;
@@ -47,6 +50,10 @@ function drawBalls(ctx) {
             ctx.fillStyle = 'white';
             ctx.font = `${12 * window.scale}px Arial`;
             ctx.textAlign = 'center';
+            // Draw description if under crosshair
+            if (under && under.type === 'node' && under.item === ball) {
+                ctx.fillText(ball.description, ball.x, ball.y - ball.radius - 20);
+            }
             ctx.fillText(ball.name, ball.x, ball.y - ball.radius - 5);
         }
     });

@@ -9,7 +9,6 @@ function handleMessage(req, res) {
         try {
             const data = JSON.parse(body);
             const message = data.message;
-            console.log('Received from frontend:', message);
             // Call user-defined callback
             if (global.onMessageFromFrontend) {
                 global.onMessageFromFrontend(message);

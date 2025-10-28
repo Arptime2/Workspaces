@@ -24,6 +24,10 @@ function adjustScale(factor) {
         ball.radius *= newScale / scale;
     });
     scaleWorkspaces(centerX, centerY, newScale, scale);
+    window.crosshairVirtualX = (window.crosshairVirtualX - centerX) * (newScale / scale) + centerX;
+    window.crosshairVirtualY = (window.crosshairVirtualY - centerY) * (newScale / scale) + centerY;
+    window.panOffsetX *= newScale / scale;
+    window.panOffsetY *= newScale / scale;
     scale = newScale;
     window.scale = scale;
     if (window.editInput) {
