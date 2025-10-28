@@ -149,3 +149,7 @@ function drawClosedOverlays(ctx) {
         }
     });
 }
+
+function isNodeInAnyWorkspace(ball) {
+    return workspaces.some(ws => ws.nodeIds.includes(ball.id));
+}

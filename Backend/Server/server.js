@@ -3,12 +3,33 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { handleMessage, handlePoll, handleSendMessage } = require('./Communication/communication');
+const { spawnShell } = require('../Terminal/terminal');
+
+function parseMessage(message, prefix) {
+    return message.slice(prefix.length);
+}
+
+function initializeShell() {
+    global.shellProcess = spawnShell();
+    const sendOutput = (data) => global.sendToFrontend('output:' + data.toString());
+    global.shellProcess.stdout.on('data', sendOutput);
+    global.shellProcess.stderr.on('data', sendOutput);
+    global.shellProcess.on('close', () => {
+        global.sendToFrontend('command_done');
+        global.shellProcess = null;
+    });
+}
 
 // Set up backend message handling
 global.onMessageFromFrontend = (message) => {
-    console.log('Processing message from frontend:', message);
-    // Example: send a message to frontend (disabled for test)
-    // global.sendToFrontend('Processed: ' + message);
+    if (message.startsWith('execute:')) {
+        const command = parseMessage(message, 'execute:') + '\n';
+        if (!global.shellProcess) initializeShell();
+        global.shellProcess.stdin.write(command);
+    } else if (message.startsWith('input:')) {
+        const input = parseMessage(message, 'input:') + '\n';
+        if (global.shellProcess) global.shellProcess.stdin.write(input);
+    }
 };
 
 const server = http.createServer((req, res) => {

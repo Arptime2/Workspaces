@@ -22,10 +22,22 @@ let editInput;
 window.editingItem;
 let editingType;
 window.isEditing = false;
+window.terminalHistory = [];
 
 function draw() {
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Draw terminal history as background
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'left';
+    let y = 20;
+    window.terminalHistory.forEach(line => {
+        ctx.fillText(line, 10, y);
+        y += 15;
+    });
+    ctx.globalAlpha = 1;
     drawWorkspaces(ctx);
     drawBalls(ctx);
     drawConnections(ctx);
@@ -57,7 +69,7 @@ canvas.addEventListener('mousedown', (e) => {
         workspaces.push(new Workspace(x, y, w, h, id, 'Workspace ' + id, '', []));
         const ws = workspaces[workspaces.length - 1];
         balls.forEach(ball => {
-            if (isNodeInWorkspace(ball, ws)) {
+            if (isNodeInWorkspace(ball, ws) && !isNodeInAnyWorkspace(ball)) {
                 ws.nodeIds.push(ball.id);
             }
         });
@@ -80,14 +92,12 @@ canvas.addEventListener('mousedown', (e) => {
                 workspaceEndY = e.clientY;
             }
         }, 300);
-    } else if (ws && !draggedBall) {
+     } else if (ws && !draggedBall) {
         // On workspace, start timer for dragging
         longPressTimer = setTimeout(() => {
             if (!hasMoved) {
                 draggedWorkspace = ws;
-                draggedNodes = balls.filter(ball => isNodeInWorkspace(ball, ws));
-                // Update nodeIds
-                ws.nodeIds = draggedNodes.map(ball => ball.id);
+                draggedNodes = balls.filter(ball => ws.nodeIds.includes(ball.id));
             }
         }, 300);
     }
@@ -175,15 +185,14 @@ document.addEventListener('mouseup', (e) => {
     // Update workspaces for node placement
     if (draggedBall && balls.includes(draggedBall)) {
         workspaces.forEach(ws => {
-            // Resync nodeIds based on current positions
-            ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws)).map(ball => ball.id);
+            ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws) && !workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
             updateWorkspaceSize(ws);
         });
     }
     // Update workspaces for workspace placement
     if (draggedWorkspace) {
         workspaces.forEach(ws => {
-            ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws)).map(ball => ball.id);
+            ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws) && !workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
             updateWorkspaceSize(ws);
         });
     }
@@ -302,7 +311,7 @@ canvas.addEventListener('click', async (e) => {
                     const newNode = new Node(pendingMouseX, pendingMouseY, 20 * window.scale, nextId++);
                     balls.push(newNode);
                     workspaces.forEach(ws => {
-                        if (isNodeInWorkspace(newNode, ws)) {
+                        if (isNodeInWorkspace(newNode, ws) && !isNodeInAnyWorkspace(newNode)) {
                             ws.nodeIds.push(newNode.id);
                             updateWorkspaceSize(ws);
                         }
