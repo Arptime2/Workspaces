@@ -550,3 +550,7 @@ createNewNode();
 createNewWorkspace();
 saveWorkspace('New Workspace');
 saveNode('New Node');
+setTimeout(() => {
+    loadWorkspace('New Workspace');
+    loadNode('New Node');
+}, 5000);

@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listen for output
+    // Listen for output without clobbering existing handlers
+    const previousOnMessageFromBackend = window.onMessageFromBackend;
     window.onMessageFromBackend = (message) => {
         if (message.startsWith('output:')) {
             const result = message.slice(7);
@@ -45,6 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.terminalHistory.push(...lines);
         } else if (message === 'command_done') {
             expectingInput = false;
+        } else if (typeof previousOnMessageFromBackend === 'function') {
+            previousOnMessageFromBackend(message);
         }
     };
 });

@@ -68,3 +68,28 @@ function saveNode(nodeName) {
     const jsonString = JSON.stringify(data, null, 2);
     window.sendToBackend('save_node:' + JSON.stringify({ name: nodeName, data: jsonString }));
 }
+
+function loadNode(nodeName) {
+    console.log('Loading node:', nodeName);
+    window.sendToBackend('load_node:' + nodeName);
+}
+
+function loadWorkspace(workspaceName) {
+    console.log('Loading workspace:', workspaceName);
+    window.sendToBackend('load_workspace:' + workspaceName);
+}
+
+window.handleLoadedMessage = function(message) {
+    console.log('handleLoadedMessage called with:', message);
+    if (message.startsWith('loaded_node:')) {
+        const payload = JSON.parse(message.slice('loaded_node:'.length));
+        console.log('Loaded node data for:', payload.name);
+        const data = JSON.parse(payload.data);
+        createNewNode(data.x, data.y, data.radius, data.name, data.description, data.color, data.labels, data.outgoing, data.systemPrompt, data.prompt, data.tokenCount, data.contextLabels, data.contextCount, data.nodeType);
+    } else if (message.startsWith('loaded_workspace:')) {
+        const payload = JSON.parse(message.slice('loaded_workspace:'.length));
+        console.log('Loaded workspace data for:', payload.name);
+        const data = JSON.parse(payload.data);
+        createNewWorkspace(data.x, data.y, data.width, data.height, data.name, data.description, data.nodeIds, data.workspaceIds);
+    }
+};

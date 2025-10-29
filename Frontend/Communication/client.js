@@ -17,8 +17,12 @@ window.sendToBackend = async (message) => {
 };
 
 window.onMessageFromBackend = (message) => {
-    console.log('Message from backend:', message);
-    // Default handler, can be overridden
+    if (message.startsWith('loaded_')) {
+        window.handleLoadedMessage(message);
+    } else {
+        console.log('Message from backend:', message);
+        // Default handler, can be overridden
+    }
 };
 
 const pollMessages = async () => {
