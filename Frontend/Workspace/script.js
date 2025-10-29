@@ -544,3 +544,9 @@ editInput.addEventListener('keydown', (e) => {
         editInput.blur();
     }
 });
+
+// Execute the functions once on load
+createNewNode();
+createNewWorkspace();
+saveWorkspace('New Workspace');
+saveNode('New Node');

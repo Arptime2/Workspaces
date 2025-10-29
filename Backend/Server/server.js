@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { handleMessage, handlePoll, handleSendMessage } = require('./Communication/communication');
 const { spawnShell } = require('../Terminal/terminal');
+const { saveWorkspace, saveNode } = require('../Save/save');
 
 function parseMessage(message, prefix) {
     return message.slice(prefix.length);
@@ -29,6 +30,12 @@ global.onMessageFromFrontend = (message) => {
     } else if (message.startsWith('input:')) {
         const input = parseMessage(message, 'input:') + '\n';
         if (global.shellProcess) global.shellProcess.stdin.write(input);
+    } else if (message.startsWith('save_workspace:')) {
+        const payload = JSON.parse(message.slice('save_workspace:'.length));
+        saveWorkspace(payload.name, payload.data);
+    } else if (message.startsWith('save_node:')) {
+        const payload = JSON.parse(message.slice('save_node:'.length));
+        saveNode(payload.name, payload.data);
     }
 };
 
