@@ -2,7 +2,6 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
 // Placeholder for autoSave, will be overridden by save.js
-window.autoSave = () => {};
 window.reconstructingItem = null;
 if (window.visualViewport) {
     canvas.width = window.visualViewport.width;
@@ -124,7 +123,6 @@ canvas.addEventListener('mousedown', (e) => {
         updateWorkspaceSize(ws);
         window.isDefiningWorkspace = false;
         justPlacedWorkspace = true;
-        autoSave();
         return;
     }
     mouseDown = true;
@@ -233,7 +231,6 @@ document.addEventListener('mouseup', (e) => {
                 updateWorkspaceSize(ws);
             }
         });
-        autoSave();
     } else if (draggedWorkspace && isOverDeleteButton(mouseX, mouseY)) {
         // delete workspace and its nodes and child workspaces
         workspaces = workspaces.filter(ws => ws !== draggedWorkspace && !getAllChildWorkspaces(draggedWorkspace).includes(ws));
@@ -248,7 +245,6 @@ document.addEventListener('mouseup', (e) => {
         getAllChildWorkspaces(draggedWorkspace).forEach(childWs => {
             balls = balls.filter(ball => !childWs.nodeIds.includes(ball.id));
         });
-        autoSave();
     }
     // Update workspaces for node placement
     if (draggedBall && balls.includes(draggedBall)) {
@@ -256,7 +252,6 @@ document.addEventListener('mouseup', (e) => {
             ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws) && !workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
             updateWorkspaceSize(ws);
         });
-        autoSave();
     }
     // Update workspaces for workspace placement
     if (draggedWorkspace) {
@@ -268,7 +263,6 @@ document.addEventListener('mouseup', (e) => {
                 updateWorkspaceSize(ws);
             }
         });
-        autoSave();
     }
     mouseDown = false;
     draggedBall = null;
@@ -439,7 +433,6 @@ canvas.addEventListener('click', async (e) => {
         for (let ws of workspaces) {
             if (pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height) {
                 ws.closed = !ws.closed;
-                autoSave();
                 return; // Toggle and exit
             }
         }
@@ -471,7 +464,6 @@ canvas.addEventListener('click', async (e) => {
                     if (isConnecting) {
                         finishConnection(newNode);
                     }
-                    autoSave();
                 }
             }
         }
@@ -537,7 +529,7 @@ editInput.addEventListener('blur', () => {
             window.reconstructingItem = editingItem;
             window.sendToBackend(JSON.stringify({type: 'load_workspace', name: newName}));
         } else {
-            autoSave();
+            //
         }
         editInput.style.display = 'none';
         window.editingItem = null;
