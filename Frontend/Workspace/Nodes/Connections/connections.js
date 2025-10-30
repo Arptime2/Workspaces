@@ -36,9 +36,9 @@ function finishConnection(secondNode) {
 }
 
 function drawConnections(ctx) {
-    balls.forEach(node => {
+    window.balls.forEach(node => {
         node.outgoing.forEach(otherId => {
-            const other = balls.find(b => b.id === otherId);
+            const other = window.balls.find(b => b.id === otherId);
             if (other) {
                 const angle = Math.atan2(other.y - node.y, other.x - node.x);
                 const startX = node.x + node.radius * Math.cos(angle);
@@ -55,7 +55,7 @@ function drawConnections(ctx) {
 function drawSelectionLine(ctx) {
     if (isConnecting && firstNode) {
         const allConnections = getAllConnections();
-        const closeSameDirection = allConnections.some(conn => conn.from === firstNode.id && isCloseToLine(currentMouseX, currentMouseY, balls.find(b => b.id === conn.from), balls.find(b => b.id === conn.to)));
+        const closeSameDirection = allConnections.some(conn => conn.from === firstNode.id && isCloseToLine(currentMouseX, currentMouseY, window.balls.find(b => b.id === conn.from), window.balls.find(b => b.id === conn.to)));
         const color = closeSameDirection ? 'red' : 'white';
         drawLine(ctx, firstNode.x, firstNode.y, currentMouseX, currentMouseY, color, true);
     }
@@ -127,7 +127,7 @@ function isCloseToLine(px, py, from, to) {
 
 function getAllConnections() {
     let all = [];
-    balls.forEach(node => {
+    window.balls.forEach(node => {
         node.outgoing.forEach(id => {
             all.push({ from: node.id, to: id });
         });

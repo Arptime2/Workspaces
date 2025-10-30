@@ -23,15 +23,15 @@ window.getItemUnderCrosshair = function() {
     const screenX = window.crosshairVirtualX - window.panOffsetX;
     const screenY = window.crosshairVirtualY - window.panOffsetY;
     // Check nodes
-    for (let ball of balls) {
+    for (let ball of window.balls) {
         const dist = Math.sqrt((screenX - ball.x) ** 2 + (screenY - ball.y) ** 2);
         if (dist < ball.radius) {
             return { type: 'node', item: ball };
         }
     }
-    // Check workspaces, innermost
+    // Check window.workspaces, innermost
     let candidate = null;
-    for (let ws of workspaces) {
+    for (let ws of window.workspaces) {
         if (screenX >= ws.x && screenX <= ws.x + ws.width && screenY >= ws.y && screenY <= ws.y + ws.height) {
             if (!candidate || (ws.width * ws.height < candidate.width * candidate.height)) {
                 candidate = ws;
@@ -108,14 +108,14 @@ canvas.addEventListener('mousedown', (e) => {
         const x = Math.min(e.clientX, workspaceStartX);
         const y = Math.min(e.clientY, workspaceStartY);
         const id = window.nextWorkspaceId++;
-        workspaces.push(new Workspace(x, y, w, h, id, 'Workspace ' + id, '', []));
-        const ws = workspaces[workspaces.length - 1];
-        balls.forEach(ball => {
+        window.workspaces.push(new Workspace(x, y, w, h, id, 'Workspace ' + id, '', []));
+        const ws = window.workspaces[window.workspaces.length - 1];
+        window.balls.forEach(ball => {
             if (isNodeInWorkspace(ball, ws) && !isNodeInAnyWorkspace(ball)) {
                 ws.nodeIds.push(ball.id);
             }
         });
-        workspaces.forEach(otherWs => {
+        window.workspaces.forEach(otherWs => {
             if (otherWs !== ws && isWorkspaceInWorkspace(otherWs, ws)) {
                 ws.workspaceIds.push(otherWs.id);
             }
@@ -184,7 +184,7 @@ document.addEventListener('mousemove', (e) => {
     } else if (mouseDown && !isDragging && !draggedWorkspace && !window.isDefiningWorkspace) {
         const deltaX = e.clientX - prevMouseX;
         const deltaY = e.clientY - prevMouseY;
-        balls.forEach(ball => {
+        window.balls.forEach(ball => {
             ball.x += deltaX;
             ball.y += deltaY;
         });
@@ -219,47 +219,47 @@ document.addEventListener('mouseup', (e) => {
     const mouseY = e.clientY;
     if (draggedBall && isOverDeleteButton(mouseX, mouseY)) {
         // delete node
-        balls = balls.filter(ball => ball !== draggedBall);
+        window.balls = window.balls.filter(ball => ball !== draggedBall);
         // remove from outgoing connections
-        balls.forEach(ball => {
+        window.balls.forEach(ball => {
             ball.outgoing = ball.outgoing.filter(id => id !== draggedBall.id);
         });
-        // update workspaces
-        workspaces.forEach(ws => {
+        // update window.workspaces
+        window.workspaces.forEach(ws => {
             if (ws.nodeIds.includes(draggedBall.id)) {
                 ws.nodeIds = ws.nodeIds.filter(id => id !== draggedBall.id);
                 updateWorkspaceSize(ws);
             }
         });
     } else if (draggedWorkspace && isOverDeleteButton(mouseX, mouseY)) {
-        // delete workspace and its nodes and child workspaces
-        workspaces = workspaces.filter(ws => ws !== draggedWorkspace && !getAllChildWorkspaces(draggedWorkspace).includes(ws));
+        // delete workspace and its nodes and child window.workspaces
+        window.workspaces = window.workspaces.filter(ws => ws !== draggedWorkspace && !getAllChildWorkspaces(draggedWorkspace).includes(ws));
         draggedNodes.forEach(node => {
-            balls = balls.filter(ball => ball !== node);
+            window.balls = window.balls.filter(ball => ball !== node);
             // remove connections to this node
-            balls.forEach(ball => {
+            window.balls.forEach(ball => {
                 ball.outgoing = ball.outgoing.filter(id => id !== node.id);
             });
         });
-        // Also delete nodes in child workspaces
+        // Also delete nodes in child window.workspaces
         getAllChildWorkspaces(draggedWorkspace).forEach(childWs => {
-            balls = balls.filter(ball => !childWs.nodeIds.includes(ball.id));
+            window.balls = window.balls.filter(ball => !childWs.nodeIds.includes(ball.id));
         });
     }
-    // Update workspaces for node placement
-    if (draggedBall && balls.includes(draggedBall)) {
-        workspaces.forEach(ws => {
-            ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws) && !workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
+    // Update window.workspaces for node placement
+    if (draggedBall && window.balls.includes(draggedBall)) {
+        window.workspaces.forEach(ws => {
+            ws.nodeIds = window.balls.filter(ball => isNodeInWorkspace(ball, ws) && !window.workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
             updateWorkspaceSize(ws);
         });
     }
-    // Update workspaces for workspace placement
+    // Update window.workspaces for workspace placement
     if (draggedWorkspace) {
         const draggedTree = [draggedWorkspace, ...draggedChildWorkspaces];
-        workspaces.forEach(ws => {
+        window.workspaces.forEach(ws => {
             if (!draggedTree.includes(ws)) {
-                ws.nodeIds = balls.filter(ball => isNodeInWorkspace(ball, ws) && !workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
-                ws.workspaceIds = workspaces.filter(other => other !== ws && isWorkspaceInWorkspace(other, ws)).map(other => other.id);
+                ws.nodeIds = window.balls.filter(ball => isNodeInWorkspace(ball, ws) && !window.workspaces.filter(other => other !== ws).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
+                ws.workspaceIds = window.workspaces.filter(other => other !== ws && isWorkspaceInWorkspace(other, ws)).map(other => other.id);
                 updateWorkspaceSize(ws);
             }
         });
@@ -296,7 +296,7 @@ canvas.addEventListener('click', async (e) => {
     pendingMouseY = mouseY;
 
     let clickedOnBall = false;
-    balls.forEach(async (ball) => {
+    window.balls.forEach(async (ball) => {
         const dist = Math.sqrt((pendingMouseX - ball.x) ** 2 + (pendingMouseY - ball.y) ** 2);
         if (dist < ball.radius) {
             clickedOnBall = true;
@@ -363,7 +363,7 @@ canvas.addEventListener('click', async (e) => {
 
     // Check for workspace name click
     if (!clickedOnBall) {
-        for (let ws of workspaces) {
+        for (let ws of window.workspaces) {
             const nameX = ws.x + ws.width / 2;
             const nameY = ws.y - 10;
             const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
@@ -430,7 +430,7 @@ canvas.addEventListener('click', async (e) => {
             clearTimeout(pendingTimeout);
             pendingTimeout = null;
         }
-        for (let ws of workspaces) {
+        for (let ws of window.workspaces) {
             if (pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height) {
                 ws.closed = !ws.closed;
                 return; // Toggle and exit
@@ -445,17 +445,17 @@ canvas.addEventListener('click', async (e) => {
     pendingTimeout = setTimeout(() => {
         if (clickCount === 1 && !clickedOnBall) {
             // Check if click is in a closed workspace
-            const inClosedWorkspace = workspaces.some(ws => ws.closed && pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height);
+            const inClosedWorkspace = window.workspaces.some(ws => ws.closed && pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height);
             if (!inClosedWorkspace) {
                 // Check for overlap
-                const tooClose = balls.some(ball => {
+                const tooClose = window.balls.some(ball => {
                     const dist = Math.sqrt((pendingMouseX - ball.x) ** 2 + (pendingMouseY - ball.y) ** 2);
                     return dist < ball.radius + 20;
                 });
                 if (!tooClose) {
                     const newNode = new Node(pendingMouseX, pendingMouseY, 20 * window.scale, window.nextId++);
-                    balls.push(newNode);
-                    workspaces.forEach(ws => {
+                    window.balls.push(newNode);
+                    window.workspaces.forEach(ws => {
                         if (isNodeInWorkspace(newNode, ws) && !isNodeInAnyWorkspace(newNode)) {
                             ws.nodeIds.push(newNode.id);
                             updateWorkspaceSize(ws);
@@ -548,8 +548,8 @@ editInput.addEventListener('keydown', (e) => {
 // Execute the functions once on load
 createNewNode();
 createNewWorkspace();
-const ws = workspaces[workspaces.length - 1];
-const node = balls[balls.length - 1];
+const ws = window.workspaces[window.workspaces.length - 1];
+const node = window.balls[window.balls.length - 1];
 ws.nodeIds.push(node.id);
 updateWorkspaceSize(ws);
 saveWorkspace('New Workspace');

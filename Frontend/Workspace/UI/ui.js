@@ -18,7 +18,7 @@ function adjustScale(factor) {
     const canvas = document.getElementById('canvas');
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    balls.forEach(ball => {
+    window.balls.forEach(ball => {
         ball.x = (ball.x - centerX) * (newScale / scale) + centerX;
         ball.y = (ball.y - centerY) * (newScale / scale) + centerY;
         ball.radius *= newScale / scale;

@@ -18,15 +18,14 @@ class Node {
     }
 }
 
-let balls = [];
-window.balls = balls;
+window.balls = [];
 let draggedBall = null;
 let isDragging = false;
 window.nextId = 0;
 
 function initBalls(canvas) {
     for (let i = 0; i < 5; i++) {
-        balls.push(new Node(
+        window.balls.push(new Node(
             Math.random() * 1000 + canvas.width / 2 - 500,
             Math.random() * 1000 + canvas.height / 2 - 500,
             20,
@@ -38,7 +37,7 @@ function initBalls(canvas) {
 function drawBalls(ctx) {
     ctx.shadowBlur = 20;
     const under = window.getItemUnderCrosshair();
-    balls.forEach(ball => {
+    window.balls.forEach(ball => {
         ctx.shadowColor = ball.color;
         ctx.fillStyle = ball.color;
         ctx.beginPath();
@@ -61,7 +60,7 @@ function drawBalls(ctx) {
 function handleBallMouseDown(e) {
     const mouseX = e.clientX;
     const mouseY = e.clientY;
-    balls.forEach(ball => {
+    window.balls.forEach(ball => {
         const dist = Math.sqrt((mouseX - ball.x) ** 2 + (mouseY - ball.y) ** 2);
         if (dist < ball.radius) {
             draggedBall = ball;
@@ -85,7 +84,7 @@ function handleBallMouseUp() {
 }
 
 function panBalls(deltaX, deltaY) {
-    balls.forEach(ball => {
+    window.balls.forEach(ball => {
         ball.x += deltaX;
         ball.y += deltaY;
     });

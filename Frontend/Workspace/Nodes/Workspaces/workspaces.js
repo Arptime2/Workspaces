@@ -13,8 +13,7 @@ class Workspace {
     }
 }
 
-let workspaces = [];
-window.workspaces = workspaces;
+window.workspaces = [];
 let nextWorkspaceId = 0;
 window.nextWorkspaceId = nextWorkspaceId;
 let draggedWorkspace = null;
@@ -30,7 +29,7 @@ function isWorkspaceInWorkspace(childWs, parentWs) {
 function getAllChildWorkspaces(ws) {
     let children = [];
     ws.workspaceIds.forEach(id => {
-        const child = workspaces.find(w => w.id === id);
+        const child = window.workspaces.find(w => w.id === id);
         if (child) {
             children.push(child);
             children = children.concat(getAllChildWorkspaces(child));
@@ -40,9 +39,9 @@ function getAllChildWorkspaces(ws) {
 }
 
 function getAllChildNodes(ws) {
-    let nodes = ws.nodeIds.map(id => balls.find(b => b.id === id)).filter(b => b);
+    let nodes = ws.nodeIds.map(id => window.balls.find(b => b.id === id)).filter(b => b);
     ws.workspaceIds.forEach(id => {
-        const child = workspaces.find(w => w.id === id);
+        const child = window.workspaces.find(w => w.id === id);
         if (child) {
             nodes = nodes.concat(getAllChildNodes(child));
         }
@@ -66,7 +65,7 @@ function drawWorkspace(ws, ctx) {
     }
     // Draw children
     ws.workspaceIds.forEach(id => {
-        const child = workspaces.find(w => w.id === id);
+        const child = window.workspaces.find(w => w.id === id);
         if (child) {
             drawWorkspace(child, ctx);
         }
@@ -74,9 +73,9 @@ function drawWorkspace(ws, ctx) {
 }
 
 function drawWorkspaces(ctx) {
-    // Draw top-level workspaces (those not in any other)
-    workspaces.forEach(ws => {
-        if (!workspaces.some(other => other.workspaceIds.includes(ws.id))) {
+    // Draw top-level window.workspaces (those not in any other)
+    window.workspaces.forEach(ws => {
+        if (!window.workspaces.some(other => other.workspaceIds.includes(ws.id))) {
             drawWorkspace(ws, ctx);
         }
     });
@@ -121,7 +120,7 @@ function handleWorkspaceMouseDown(e) {
     const mouseX = e.clientX;
     const mouseY = e.clientY;
     let candidate = null;
-    for (let ws of workspaces) {
+    for (let ws of window.workspaces) {
         if (mouseX >= ws.x && mouseX <= ws.x + ws.width && mouseY >= ws.y && mouseY <= ws.y + ws.height) {
             if (!candidate || (ws.width * ws.height < candidate.width * candidate.height)) {
                 candidate = ws;
@@ -152,14 +151,14 @@ function handleWorkspaceMouseMove(deltaX, deltaY) {
 }
 
 function panWorkspaces(deltaX, deltaY) {
-    workspaces.forEach(ws => {
+    window.workspaces.forEach(ws => {
         ws.x += deltaX;
         ws.y += deltaY;
     });
 }
 
 function scaleWorkspaces(centerX, centerY, newScale, oldScale) {
-    workspaces.forEach(ws => {
+    window.workspaces.forEach(ws => {
         ws.x = (ws.x - centerX) * (newScale / oldScale) + centerX;
         ws.y = (ws.y - centerY) * (newScale / oldScale) + centerY;
         ws.width *= newScale / oldScale;
@@ -196,7 +195,7 @@ function updateWorkspaceSize(ws) {
 }
 
 function drawClosedOverlays(ctx) {
-    workspaces.forEach(ws => {
+    window.workspaces.forEach(ws => {
         if (ws.closed) {
             const radius = parseInt(getCSSVar('--workspace-radius'));
             const effectiveRadius = Math.min(radius, ws.width / 2, ws.height / 2);
@@ -221,5 +220,5 @@ function drawClosedOverlays(ctx) {
 }
 
 function isNodeInAnyWorkspace(ball) {
-    return workspaces.some(ws => ws.nodeIds.includes(ball.id));
+    return window.workspaces.some(ws => ws.nodeIds.includes(ball.id));
 }
