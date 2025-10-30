@@ -14,7 +14,7 @@ function createNewNode(x = 100, y = 100, radius = 20, name = 'New Node', descrip
     window.balls.push(newNode);
 }
 
-function createNewWorkspace(x = 200, y = 200, width = 100, height = 100, name = 'New Workspace', description = 'A newly created workspace', nodeIds = [], workspaceIds = []) {
+function createNewWorkspace(x = 100, y = 100, width = 100, height = 100, name = 'New Workspace', description = 'A newly created workspace', nodeIds = [], workspaceIds = []) {
     const newWorkspace = new Workspace(x, y, width, height, window.nextWorkspaceId++, name, description, nodeIds, workspaceIds);
     newWorkspace.closed = false;
     window.workspaces.push(newWorkspace);
@@ -34,8 +34,8 @@ function saveWorkspace(workspaceName) {
         id: workspace.id,
         name: workspace.name,
         description: workspace.description,
-        nodeIds: workspace.nodeIds,
-        workspaceIds: workspace.workspaceIds,
+        nodeIds: workspace.nodeIds.map(id => window.balls.find(b => b.id === id)?.name).filter(Boolean),
+        workspaceIds: workspace.workspaceIds.map(id => window.workspaces.find(w => w.id === id)?.name).filter(Boolean),
         closed: workspace.closed
     };
     const jsonString = JSON.stringify(data, null, 2);
@@ -57,7 +57,7 @@ function saveNode(nodeName) {
         description: node.description,
         color: node.color,
         labels: node.labels,
-        outgoing: node.outgoing,
+        outgoing: node.outgoing.map(id => window.balls.find(b => b.id === id)?.name).filter(Boolean),
         systemPrompt: node.systemPrompt,
         prompt: node.prompt,
         tokenCount: node.tokenCount,
@@ -74,9 +74,14 @@ function loadNode(nodeName) {
     window.sendToBackend('load_node:' + nodeName);
 }
 
-function loadWorkspace(workspaceName) {
-    console.log('Loading workspace:', workspaceName);
-    window.sendToBackend('load_workspace:' + workspaceName);
+function loadWorkspace(workspaceName, recursive = false) {
+    console.log('Loading workspace:', workspaceName, recursive ? 'recursively' : '');
+    window.sendToBackend('load_workspace:' + JSON.stringify({name: workspaceName, recursive}));
+}
+
+function loadWorkspaceNewVersion(workspaceName, x = 100, y = 100) {
+    window.repositionTarget = { name: workspaceName, x, y };
+    loadWorkspace(workspaceName, true);
 }
 
 window.handleLoadedMessage = function(message) {
@@ -85,11 +90,39 @@ window.handleLoadedMessage = function(message) {
         const payload = JSON.parse(message.slice('loaded_node:'.length));
         console.log('Loaded node data for:', payload.name);
         const data = JSON.parse(payload.data);
+        if (window.currentOffset) {
+            data.x += window.currentOffset.offsetX;
+            data.y += window.currentOffset.offsetY;
+        }
+        data.outgoing = data.outgoing.map(name => window.balls.find(b => b.name === name)?.id).filter(Boolean);
         createNewNode(data.x, data.y, data.radius, data.name, data.description, data.color, data.labels, data.outgoing, data.systemPrompt, data.prompt, data.tokenCount, data.contextLabels, data.contextCount, data.nodeType);
     } else if (message.startsWith('loaded_workspace:')) {
         const payload = JSON.parse(message.slice('loaded_workspace:'.length));
         console.log('Loaded workspace data for:', payload.name);
         const data = JSON.parse(payload.data);
-        createNewWorkspace(data.x, data.y, data.width, data.height, data.name, data.description, data.nodeIds, data.workspaceIds);
+        if (window.repositionTarget && data.name === window.repositionTarget.name) {
+            const offsetX = window.repositionTarget.x - data.x;
+            const offsetY = window.repositionTarget.y - data.y;
+            window.currentOffset = { offsetX, offsetY };
+            data.x = window.repositionTarget.x;
+            data.y = window.repositionTarget.y;
+            window.repositionTarget = null;
+        } else if (window.currentOffset) {
+            data.x += window.currentOffset.offsetX;
+            data.y += window.currentOffset.offsetY;
+        }
+        if (payload.recursive) {
+            data.nodeIds.forEach(name => loadNode(name));
+            data.workspaceIds.forEach(name => loadWorkspace(name, true));
+            setTimeout(() => {
+                data.nodeIds = data.nodeIds.map(name => window.balls.find(b => b.name === name)?.id).filter(Boolean);
+                data.workspaceIds = data.workspaceIds.map(name => window.workspaces.find(w => w.name === name)?.id).filter(Boolean);
+                createNewWorkspace(data.x, data.y, data.width, data.height, data.name, data.description, data.nodeIds, data.workspaceIds);
+            }, 100);
+        } else {
+            data.nodeIds = data.nodeIds.map(name => window.balls.find(b => b.name === name)?.id).filter(Boolean);
+            data.workspaceIds = data.workspaceIds.map(name => window.workspaces.find(w => w.name === name)?.id).filter(Boolean);
+            createNewWorkspace(data.x, data.y, data.width, data.height, data.name, data.description, data.nodeIds, data.workspaceIds);
+        }
     }
 };

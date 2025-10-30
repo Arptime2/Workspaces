@@ -31,14 +31,14 @@ function loadNode(name) {
     }
 }
 
-function loadWorkspace(name) {
-    console.log('Loading workspace:', name);
+function loadWorkspace(name, recursive = false) {
+    console.log('Loading workspace:', name, recursive ? 'recursively' : '');
     const fileName = `workspaces_${name}.json`;
     const filePath = path.join(WORKSPACES_PATH, fileName);
     if (fs.existsSync(filePath)) {
         console.log('Workspace file found, sending data');
         const data = fs.readFileSync(filePath, 'utf8');
-        global.sendToFrontend('loaded_workspace:' + JSON.stringify({ name, data }));
+        global.sendToFrontend('loaded_workspace:' + JSON.stringify({ name, data, recursive }));
     } else {
         console.log('Workspace file not found');
     }

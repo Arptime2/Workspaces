@@ -188,10 +188,11 @@ function updateWorkspaceSize(ws) {
         maxY = Math.max(maxY, cws.y + cws.height);
     });
     if (minX === Infinity) return; // No content
-    ws.x = minX - 50 * window.scale;
-    ws.y = minY - 50 * window.scale;
-    ws.width = (maxX - minX) + 100 * window.scale;
-    ws.height = (maxY - minY) + 100 * window.scale;
+    const scale = window.scale || 1;
+    ws.x = minX - 50 * scale;
+    ws.y = minY - 50 * scale;
+    ws.width = (maxX - minX) + 100 * scale;
+    ws.height = (maxY - minY) + 100 * scale;
 }
 
 function drawClosedOverlays(ctx) {

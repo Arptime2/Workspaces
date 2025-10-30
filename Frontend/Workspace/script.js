@@ -107,7 +107,7 @@ canvas.addEventListener('mousedown', (e) => {
         const h = Math.abs(e.clientY - workspaceStartY);
         const x = Math.min(e.clientX, workspaceStartX);
         const y = Math.min(e.clientY, workspaceStartY);
-        const id = nextWorkspaceId++;
+        const id = window.nextWorkspaceId++;
         workspaces.push(new Workspace(x, y, w, h, id, 'Workspace ' + id, '', []));
         const ws = workspaces[workspaces.length - 1];
         balls.forEach(ball => {
@@ -453,7 +453,7 @@ canvas.addEventListener('click', async (e) => {
                     return dist < ball.radius + 20;
                 });
                 if (!tooClose) {
-                    const newNode = new Node(pendingMouseX, pendingMouseY, 20 * window.scale, nextId++);
+                    const newNode = new Node(pendingMouseX, pendingMouseY, 20 * window.scale, window.nextId++);
                     balls.push(newNode);
                     workspaces.forEach(ws => {
                         if (isNodeInWorkspace(newNode, ws) && !isNodeInAnyWorkspace(newNode)) {
@@ -548,9 +548,17 @@ editInput.addEventListener('keydown', (e) => {
 // Execute the functions once on load
 createNewNode();
 createNewWorkspace();
+const ws = workspaces[workspaces.length - 1];
+const node = balls[balls.length - 1];
+ws.nodeIds.push(node.id);
+updateWorkspaceSize(ws);
 saveWorkspace('New Workspace');
 saveNode('New Node');
 setTimeout(() => {
-    loadWorkspace('New Workspace');
+    loadWorkspaceNewVersion('New Workspace', 100, 100);
     loadNode('New Node');
 }, 5000);
+
+setTimeout(() => {
+    loadWorkspaceNewVersion('New Workspace', 200, 200);
+}, 10000);

@@ -40,8 +40,8 @@ global.onMessageFromFrontend = (message) => {
         const name = message.slice('load_node:'.length);
         loadNode(name);
     } else if (message.startsWith('load_workspace:')) {
-        const name = message.slice('load_workspace:'.length);
-        loadWorkspace(name);
+        const payload = JSON.parse(message.slice('load_workspace:'.length));
+        loadWorkspace(payload.name, payload.recursive);
     }
 };
 

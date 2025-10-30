@@ -22,8 +22,7 @@ let balls = [];
 window.balls = balls;
 let draggedBall = null;
 let isDragging = false;
-let nextId = 0;
-window.nextId = nextId;
+window.nextId = 0;
 
 function initBalls(canvas) {
     for (let i = 0; i < 5; i++) {
@@ -31,7 +30,7 @@ function initBalls(canvas) {
             Math.random() * 1000 + canvas.width / 2 - 500,
             Math.random() * 1000 + canvas.height / 2 - 500,
             20,
-            nextId++
+            window.nextId++
         ));
     }
 }
