@@ -94,6 +94,8 @@ window.handleLoadedMessage = function(message) {
             data.x += window.currentOffset.offsetX;
             data.y += window.currentOffset.offsetY;
         }
+        data.x += window.panOffsetX;
+        data.y += window.panOffsetY;
         data.outgoing = data.outgoing.map(name => window.balls.find(b => b.name === name)?.id).filter(Boolean);
         createNewNode(data.x, data.y, data.radius, data.name, data.description, data.color, data.labels, data.outgoing, data.systemPrompt, data.prompt, data.tokenCount, data.contextLabels, data.contextCount, data.nodeType);
     } else if (message.startsWith('loaded_workspace:')) {
@@ -111,6 +113,8 @@ window.handleLoadedMessage = function(message) {
             data.x += window.currentOffset.offsetX;
             data.y += window.currentOffset.offsetY;
         }
+        data.x += window.panOffsetX;
+        data.y += window.panOffsetY;
         if (payload.recursive) {
             data.nodeIds.forEach(name => loadNode(name));
             data.workspaceIds.forEach(name => loadWorkspace(name, true));

@@ -28,7 +28,6 @@ function finishConnection(secondNode) {
             // Add new connection
             firstNode.outgoing.push(secondNode.id);
         }
-        autoSave();
     }
     firstNode = null;
     isConnecting = false;
