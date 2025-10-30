@@ -113,17 +113,21 @@ window.handleLoadedMessage = function(message) {
             data.x += window.currentOffset.offsetX;
             data.y += window.currentOffset.offsetY;
         }
-        data.x += window.panOffsetX;
-        data.y += window.panOffsetY;
+        // data.x += window.panOffsetX;
+        // data.y += window.panOffsetY;
         if (payload.recursive) {
             data.nodeIds.forEach(name => loadNode(name));
             data.workspaceIds.forEach(name => loadWorkspace(name, true));
             setTimeout(() => {
+                data.x += window.panOffsetX;
+                data.y += window.panOffsetY;
                 data.nodeIds = data.nodeIds.map(name => window.balls.find(b => b.name === name)?.id).filter(Boolean);
                 data.workspaceIds = data.workspaceIds.map(name => window.workspaces.find(w => w.name === name)?.id).filter(Boolean);
                 createNewWorkspace(data.x, data.y, data.width, data.height, data.name, data.description, data.nodeIds, data.workspaceIds);
-            }, 100);
+            }, 500);
         } else {
+            data.x += window.panOffsetX;
+            data.y += window.panOffsetY;
             data.nodeIds = data.nodeIds.map(name => window.balls.find(b => b.name === name)?.id).filter(Boolean);
             data.workspaceIds = data.workspaceIds.map(name => window.workspaces.find(w => w.name === name)?.id).filter(Boolean);
             createNewWorkspace(data.x, data.y, data.width, data.height, data.name, data.description, data.nodeIds, data.workspaceIds);
