@@ -556,7 +556,7 @@ saveWorkspace('New Workspace');
 saveNode('New Node');
 setTimeout(() => {
     loadWorkspaceNewVersion('New Workspace', 100, 100);
-    // loadNode('New Node');
+    loadNode('New Node');
 }, 5000);
 
 setTimeout(() => {

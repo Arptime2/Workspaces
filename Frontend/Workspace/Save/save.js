@@ -91,9 +91,7 @@ function loadNode(nameOrId) {
 function loadWorkspace(workspaceName, recursive = false) {
     console.log('Loading workspace:', workspaceName, recursive ? 'recursively' : '');
     return new Promise((resolve) => {
-        // For loading by name, set a temporary key
-        const tempKey = 'workspace_' + workspaceName;
-        window.pendingLoads.set(tempKey, resolve);
+        window.pendingLoads.set(workspaceName, resolve);
         window.sendToBackend('load_workspace:' + JSON.stringify({name: workspaceName, recursive}));
         console.log('Sent load_workspace request for:', workspaceName, 'recursive:', recursive);
     });
@@ -118,12 +116,13 @@ window.handleLoadedMessage = async function(message) {
         data.y += window.panOffsetY;
         data.outgoing = data.outgoing; // already ids
         const actualId = createNewNode(data.x, data.y, data.radius, data.id, data.name, data.description, data.color, data.labels, data.outgoing, data.systemPrompt, data.prompt, data.tokenCount, data.contextLabels, data.contextCount, data.nodeType);
-        const resolve = window.pendingLoads.get(data.name) || window.pendingLoads.get(String(payload.id));
-        if (resolve) {
-            resolve(actualId);
-            window.pendingLoads.delete(data.name);
-            window.pendingLoads.delete(String(payload.id));
-        }
+        const keys = [data.name, String(payload.id)];
+        keys.forEach(key => {
+            const resolve = window.pendingLoads.get(key);
+            if (resolve) {
+                resolve(actualId);
+            }
+        });
     } else if (message.startsWith('loaded_workspace:')) {
         const payload = JSON.parse(message.slice('loaded_workspace:'.length));
         console.log('Loaded workspace data for:', payload.id);
@@ -158,6 +157,13 @@ window.handleLoadedMessage = async function(message) {
             console.log('Workspace created, id:', actualId);
             const ws = window.workspaces[window.workspaces.length - 1];
             updateWorkspaceSize(ws);
+            const keys = [data.name];
+            keys.forEach(key => {
+                const resolve = window.pendingLoads.get(key);
+                if (resolve) {
+                    resolve(actualId);
+                }
+            });
         } else {
             data.x += window.panOffsetX;
             data.y += window.panOffsetY;
@@ -167,11 +173,13 @@ window.handleLoadedMessage = async function(message) {
             const actualId = createNewWorkspace(data.x, data.y, data.width, data.height, data.id, data.name, data.description, data.nodeIds, data.workspaceIds);
             const ws = window.workspaces[window.workspaces.length - 1];
             updateWorkspaceSize(ws);
-        }
-        const resolve = window.pendingLoads.get(payload.id);
-        if (resolve) {
-            resolve(data.id);
-            window.pendingLoads.delete(payload.id);
+            const keys = [data.name];
+            keys.forEach(key => {
+                const resolve = window.pendingLoads.get(key);
+                if (resolve) {
+                    resolve(actualId);
+                }
+            });
         }
     }
 };
