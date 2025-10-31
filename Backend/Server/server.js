@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { handleMessage, handlePoll, handleSendMessage } = require('./Communication/communication');
 const { spawnShell } = require('../Terminal/terminal');
-const { saveWorkspace, saveNode, loadWorkspace, loadNode } = require('../Save/save');
+const { saveWorkspace, saveNode, loadWorkspace, loadNode, loadWorkspaceByName, loadNodeByName } = require('../Save/save');
 
 function parseMessage(message, prefix) {
     return message.slice(prefix.length);
@@ -36,13 +36,21 @@ global.onMessageFromFrontend = (message) => {
     } else if (message.startsWith('save_node:')) {
         const payload = JSON.parse(message.slice('save_node:'.length));
         saveNode(payload.name, payload.data);
-    } else if (message.startsWith('load_node:')) {
-        const name = message.slice('load_node:'.length);
-        loadNode(name);
-    } else if (message.startsWith('load_workspace:')) {
-        const payload = JSON.parse(message.slice('load_workspace:'.length));
-        loadWorkspace(payload.name, payload.recursive);
-    }
+     } else if (message.startsWith('load_node:')) {
+         const param = message.slice('load_node:'.length);
+         if (!isNaN(param)) {
+             loadNode(param);
+         } else {
+             loadNodeByName(param);
+         }
+     } else if (message.startsWith('load_workspace:')) {
+         const payload = JSON.parse(message.slice('load_workspace:'.length));
+         if (payload.name) {
+             loadWorkspaceByName(payload.name, payload.recursive);
+         } else {
+             loadWorkspace(payload.id, payload.recursive);
+         }
+     }
 };
 
 const server = http.createServer((req, res) => {

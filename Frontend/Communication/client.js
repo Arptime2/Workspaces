@@ -6,8 +6,8 @@ window.sendToBackend = async (message) => {
     try {
         const response = await fetch('/message', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message })
+            headers: { 'Content-Type': 'text/plain' },
+            body: message
         });
         const data = await response.json();
         console.log('Sent to backend:', message);

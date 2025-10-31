@@ -527,7 +527,7 @@ editInput.addEventListener('blur', () => {
         if (nameChanged) {
             // Check if saved workspace exists
             window.reconstructingItem = editingItem;
-            window.sendToBackend(JSON.stringify({type: 'load_workspace', name: newName}));
+            window.sendToBackend('load_workspace:' + JSON.stringify({name: newName, recursive: true}));
         } else {
             //
         }
@@ -556,7 +556,7 @@ saveWorkspace('New Workspace');
 saveNode('New Node');
 setTimeout(() => {
     loadWorkspaceNewVersion('New Workspace', 100, 100);
-    loadNode('New Node');
+    // loadNode('New Node');
 }, 5000);
 
 setTimeout(() => {

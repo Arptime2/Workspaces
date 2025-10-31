@@ -6,19 +6,13 @@ function handleMessage(req, res) {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
-        try {
-            const data = JSON.parse(body);
-            const message = data.message;
-            // Call user-defined callback
-            if (global.onMessageFromFrontend) {
-                global.onMessageFromFrontend(message);
-            }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ response: 'Received' }));
-        } catch (error) {
-            res.writeHead(400);
-            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        const message = body;
+        // Call user-defined callback
+        if (global.onMessageFromFrontend) {
+            global.onMessageFromFrontend(message);
         }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ response: 'Received' }));
     });
 }
 
