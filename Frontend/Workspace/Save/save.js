@@ -108,6 +108,37 @@ window.handleLoadedMessage = async function(message) {
         const payload = JSON.parse(message.slice('loaded_node:'.length));
         console.log('Loaded node data for:', payload.id);
         const data = JSON.parse(payload.data);
+        if (window.replacingNode && data.name === window.replacingNode.newName) {
+            // Replace the old node with the loaded one
+            const oldNode = window.replacingNode.oldNode;
+            // Delete old node
+            window.balls = window.balls.filter(ball => ball !== oldNode);
+            // Remove connections to old node
+            window.balls.forEach(ball => {
+                ball.outgoing = ball.outgoing.filter(id => id !== oldNode.id);
+            });
+            // Update workspaces
+            window.workspaces.forEach(ws => {
+                if (ws.nodeIds.includes(oldNode.id)) {
+                    ws.nodeIds = ws.nodeIds.filter(id => id !== oldNode.id);
+                    updateWorkspaceSize(ws);
+                }
+            });
+            // Place loaded node at old position
+            data.x = oldNode.x;
+            data.y = oldNode.y;
+            // Create the node
+            const actualId = createNewNode(data.x, data.y, data.radius, data.id, data.name, data.description, data.color, data.labels, data.outgoing, data.systemPrompt, data.prompt, data.tokenCount, data.contextLabels, data.contextCount, data.nodeType);
+            // Update workspaces for new node
+            window.workspaces.forEach(ws => {
+                if (isNodeInWorkspace(window.balls.find(b => b.id === actualId), ws) && !isNodeInAnyWorkspace(window.balls.find(b => b.id === actualId))) {
+                    ws.nodeIds.push(actualId);
+                    updateWorkspaceSize(ws);
+                }
+            });
+            window.replacingNode = null;
+            return;
+        }
         if (window.currentOffset) {
             data.x += window.currentOffset.offsetX;
             data.y += window.currentOffset.offsetY;

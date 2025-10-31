@@ -516,20 +516,26 @@ editInput.addEventListener('blur', () => {
         let nameChanged = false;
         let newName = '';
         if (editingType === 'node') {
-            editingItem.name = editInput.textContent;
+            newName = editInput.textContent;
+            if (newName !== window.editingItem.name) {
+                window.replacingNode = { oldNode: window.editingItem, newName };
+                window.sendToBackend('load_node:' + newName);
+            } else {
+                window.editingItem.name = newName;
+            }
         } else if (editingType === 'node_description') {
-            editingItem.description = editInput.textContent;
+            window.editingItem.description = editInput.textContent;
         } else if (editingType === 'workspace') {
-            const oldName = editingItem.name;
-            editingItem.name = editInput.textContent;
-            newName = editingItem.name;
+            const oldName = window.editingItem.name;
+            window.editingItem.name = editInput.textContent;
+            newName = window.editingItem.name;
             nameChanged = newName !== oldName;
         } else if (editingType === 'workspace_description') {
-            editingItem.description = editInput.textContent;
+            window.editingItem.description = editInput.textContent;
         }
         if (nameChanged) {
             // Check if saved workspace exists
-            window.reconstructingItem = editingItem;
+            window.reconstructingItem = window.editingItem;
             window.sendToBackend('load_workspace:' + JSON.stringify({name: newName, recursive: true}));
         } else {
             //
