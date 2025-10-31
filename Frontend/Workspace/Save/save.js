@@ -137,6 +137,10 @@ window.handleLoadedMessage = async function(message) {
                 }
             });
             window.replacingNode = null;
+            if (window.renameTimeout) {
+                clearTimeout(window.renameTimeout);
+                window.renameTimeout = null;
+            }
             return;
         }
         if (window.currentOffset) {
@@ -159,6 +163,41 @@ window.handleLoadedMessage = async function(message) {
         console.log('Loaded workspace data for:', payload.id);
         const data = JSON.parse(payload.data);
         console.log('Received loaded_workspace for:', data.name, 'recursive:', payload.recursive);
+        if (window.replacingWorkspace && data.name === window.replacingWorkspace.newName) {
+            // Replace the old workspace with the loaded one
+            const oldWorkspace = window.replacingWorkspace.oldWorkspace;
+            // Set reposition target to center the new workspace in the old workspace's area, in screen coordinates
+            const centeredWorldX = oldWorkspace.x + (oldWorkspace.width - data.width) / 2;
+            const centeredWorldY = oldWorkspace.y + (oldWorkspace.height - data.height) / 2;
+            window.repositionTarget = { name: data.name, x: centeredWorldX - window.panOffsetX, y: centeredWorldY - window.panOffsetY };
+            // Delete old workspace and all children
+            const toDelete = getAllChildWorkspaces(oldWorkspace);
+            toDelete.push(oldWorkspace);
+            window.workspaces = window.workspaces.filter(ws => !toDelete.includes(ws));
+            // Delete nodes in them
+            const nodesToDelete = [];
+            toDelete.forEach(ws => {
+                ws.nodeIds.forEach(id => {
+                    if (!nodesToDelete.includes(id)) nodesToDelete.push(id);
+                });
+            });
+            window.balls = window.balls.filter(ball => !nodesToDelete.includes(ball.id));
+            // Remove connections to deleted nodes
+            window.balls.forEach(ball => {
+                ball.outgoing = ball.outgoing.filter(id => !nodesToDelete.includes(id));
+            });
+            // Update remaining workspaces
+            window.workspaces.forEach(ws => {
+                ws.nodeIds = ws.nodeIds.filter(id => !nodesToDelete.includes(id));
+                ws.workspaceIds = ws.workspaceIds.filter(id => !toDelete.some(del => del.id === id));
+                updateWorkspaceSize(ws);
+            });
+            window.replacingWorkspace = null;
+            if (window.renameTimeout) {
+                clearTimeout(window.renameTimeout);
+                window.renameTimeout = null;
+            }
+        }
         if (window.repositionTarget && data.name === window.repositionTarget.name) {
             const offsetX = window.repositionTarget.x - data.x;
             const offsetY = window.repositionTarget.y - data.y;
@@ -170,8 +209,8 @@ window.handleLoadedMessage = async function(message) {
             data.x += window.currentOffset.offsetX;
             data.y += window.currentOffset.offsetY;
         }
-        // data.x += window.panOffsetX;
-        // data.y += window.panOffsetY;
+        data.x += window.panOffsetX;
+        data.y += window.panOffsetY;
         if (payload.recursive) {
             console.log('About to load nodes:', data.nodeIds);
             const loadedNodeIds = await Promise.all(data.nodeIds.map(id => loadNode(id)));

@@ -518,8 +518,14 @@ editInput.addEventListener('blur', () => {
         if (editingType === 'node') {
             newName = editInput.textContent;
             if (newName !== window.editingItem.name) {
-                window.replacingNode = { oldNode: window.editingItem, newName };
+                const item = window.editingItem;
+                window.replacingNode = { oldNode: item, newName };
                 window.sendToBackend('load_node:' + newName);
+                // If no load response, rename after delay
+                window.renameTimeout = setTimeout(() => {
+                    item.name = newName;
+                    window.replacingNode = null;
+                }, 1000);
             } else {
                 window.editingItem.name = newName;
             }
@@ -527,9 +533,19 @@ editInput.addEventListener('blur', () => {
             window.editingItem.description = editInput.textContent;
         } else if (editingType === 'workspace') {
             const oldName = window.editingItem.name;
-            window.editingItem.name = editInput.textContent;
-            newName = window.editingItem.name;
-            nameChanged = newName !== oldName;
+            newName = editInput.textContent;
+            if (newName !== oldName) {
+                const item = window.editingItem;
+                window.replacingWorkspace = { oldWorkspace: item, newName };
+                window.sendToBackend('load_workspace:' + JSON.stringify({name: newName, recursive: true}));
+                // If no load response, rename after delay
+                window.renameTimeout = setTimeout(() => {
+                    item.name = newName;
+                    window.replacingWorkspace = null;
+                }, 1000);
+            } else {
+                window.editingItem.name = newName;
+            }
         } else if (editingType === 'workspace_description') {
             window.editingItem.description = editInput.textContent;
         }
