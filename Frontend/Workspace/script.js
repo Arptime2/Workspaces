@@ -263,6 +263,9 @@ document.addEventListener('mouseup', (e) => {
                 updateWorkspaceSize(ws);
             }
         });
+        draggedWorkspace.nodeIds = window.balls.filter(ball => isNodeInWorkspace(ball, draggedWorkspace) && !window.workspaces.filter(other => other !== draggedWorkspace).some(other => other.nodeIds.includes(ball.id))).map(ball => ball.id);
+        draggedWorkspace.workspaceIds = window.workspaces.filter(other => other !== draggedWorkspace && isWorkspaceInWorkspace(other, draggedWorkspace)).map(other => other.id);
+        updateWorkspaceSize(draggedWorkspace);
     }
     mouseDown = false;
     draggedBall = null;
