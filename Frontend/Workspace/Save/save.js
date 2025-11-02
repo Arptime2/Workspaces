@@ -42,8 +42,8 @@ function saveWorkspace(workspaceName) {
         id: workspace.id,
         name: workspace.name,
         description: workspace.description,
-        nodeIds: workspace.nodeIds,
-        workspaceIds: workspace.workspaceIds,
+        nodeIds: workspace.nodeIds.map(id => { const ball = window.balls.find(b => b.id === id); return ball ? { name: ball.name, x: ball.x, y: ball.y } : null; }).filter(Boolean),
+        workspaceIds: workspace.workspaceIds.map(id => { const ws = window.workspaces.find(w => w.id === id); return ws ? { name: ws.name, x: ws.x, y: ws.y } : null; }).filter(Boolean),
         closed: workspace.closed
     };
     const jsonString = JSON.stringify(data, null, 2);
@@ -213,10 +213,26 @@ window.handleLoadedMessage = async function(message) {
         data.y += window.panOffsetY;
         if (payload.recursive) {
             console.log('About to load nodes:', data.nodeIds);
-            const loadedNodeIds = await Promise.all(data.nodeIds.map(id => loadNode(id)));
+            const loadedNodeIds = await Promise.all(data.nodeIds.map(async (item) => {
+                const id = await loadNode(item.name);
+                const ball = window.balls.find(b => b.id === id);
+                if (ball) {
+                    ball.x = item.x + window.panOffsetX + (window.currentOffset?.offsetX || 0);
+                    ball.y = item.y + window.panOffsetY + (window.currentOffset?.offsetY || 0);
+                }
+                return id;
+            }));
             console.log('Loaded node ids:', loadedNodeIds);
             console.log('About to load workspaces:', data.workspaceIds);
-            const loadedWorkspaceIds = await Promise.all(data.workspaceIds.map(id => loadWorkspace(id, true)));
+            const loadedWorkspaceIds = await Promise.all(data.workspaceIds.map(async (item) => {
+                const id = await loadWorkspace(item.name, true);
+                const ws = window.workspaces.find(w => w.id === id);
+                if (ws) {
+                    ws.x = item.x + window.panOffsetX + (window.currentOffset?.offsetX || 0);
+                    ws.y = item.y + window.panOffsetY + (window.currentOffset?.offsetY || 0);
+                }
+                return id;
+            }));
             console.log('Loaded workspace ids:', loadedWorkspaceIds);
             data.x += window.panOffsetX;
             data.y += window.panOffsetY;
@@ -237,9 +253,24 @@ window.handleLoadedMessage = async function(message) {
         } else {
             data.x += window.panOffsetX;
             data.y += window.panOffsetY;
-            const loadedNodeIds = await Promise.all(data.nodeIds.map(id => loadNode(id)));
+            const loadedNodeIds = await Promise.all(data.nodeIds.map(async (item) => {
+                const id = await loadNode(item.name);
+                const ball = window.balls.find(b => b.id === id);
+                if (ball) {
+                    ball.x = item.x + window.panOffsetX + (window.currentOffset?.offsetX || 0);
+                    ball.y = item.y + window.panOffsetY + (window.currentOffset?.offsetY || 0);
+                }
+                return id;
+            }));
             data.nodeIds = loadedNodeIds;
-            data.workspaceIds = data.workspaceIds.map(name => window.workspaces.find(w => w.name === name)?.id).filter(Boolean);
+            data.workspaceIds = data.workspaceIds.map(item => {
+                const ws = window.workspaces.find(w => w.name === item.name);
+                if (ws) {
+                    ws.x = item.x + window.panOffsetX + (window.currentOffset?.offsetX || 0);
+                    ws.y = item.y + window.panOffsetY + (window.currentOffset?.offsetY || 0);
+                }
+                return ws?.id;
+            }).filter(Boolean);
             const actualId = createNewWorkspace(data.x, data.y, data.width, data.height, data.id, data.name, data.description, data.nodeIds, data.workspaceIds);
             const ws = window.workspaces[window.workspaces.length - 1];
             updateWorkspaceSize(ws);

@@ -36,20 +36,12 @@ global.onMessageFromFrontend = (message) => {
     } else if (message.startsWith('save_node:')) {
         const payload = JSON.parse(message.slice('save_node:'.length));
         saveNode(payload.name, payload.data);
-     } else if (message.startsWith('load_node:')) {
-         const param = message.slice('load_node:'.length);
-         if (!isNaN(param)) {
-             loadNode(param);
-         } else {
-             loadNodeByName(param);
-         }
-     } else if (message.startsWith('load_workspace:')) {
-         const payload = JSON.parse(message.slice('load_workspace:'.length));
-         if (payload.name) {
-             loadWorkspaceByName(payload.name, payload.recursive);
-         } else {
-             loadWorkspace(payload.id, payload.recursive);
-         }
+      } else if (message.startsWith('load_node:')) {
+          const param = message.slice('load_node:'.length);
+          loadNode(param);
+      } else if (message.startsWith('load_workspace:')) {
+          const payload = JSON.parse(message.slice('load_workspace:'.length));
+          loadWorkspaceByName(payload.name, payload.recursive);
      }
 };
 

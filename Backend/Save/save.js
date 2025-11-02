@@ -7,7 +7,7 @@ const NODES_PATH = path.join(__dirname, '../../Data/Nodes');
 function saveWorkspace(name, data) {
     console.log('Saving workspace:', name);
     const parsed = JSON.parse(data);
-    const fileName = `workspaces_${parsed.id}.json`;
+    const fileName = `${parsed.name}.json`;
     const filePath = path.join(WORKSPACES_PATH, fileName);
     fs.writeFileSync(filePath, data);
 }
@@ -15,19 +15,19 @@ function saveWorkspace(name, data) {
 function saveNode(name, data) {
     console.log('Saving node:', name);
     const parsed = JSON.parse(data);
-    const fileName = `nodes_${parsed.id}.json`;
+    const fileName = `${parsed.name}.json`;
     const filePath = path.join(NODES_PATH, fileName);
     fs.writeFileSync(filePath, data);
 }
 
-function loadNode(id) {
-    console.log('Loading node:', id);
-    const fileName = `nodes_${id}.json`;
+function loadNode(name) {
+    console.log('Loading node:', name);
+    const fileName = `${name}.json`;
     const filePath = path.join(NODES_PATH, fileName);
     if (fs.existsSync(filePath)) {
         console.log('Node file found, sending data');
         const data = fs.readFileSync(filePath, 'utf8');
-        global.sendToFrontend('loaded_node:' + JSON.stringify({ id, data }));
+        global.sendToFrontend('loaded_node:' + JSON.stringify({ id: name, data }));
     } else {
         console.log('Node file not found');
     }
@@ -35,29 +35,17 @@ function loadNode(id) {
 
 function loadNodeByName(name) {
     console.log('Loading node by name:', name);
-    const files = fs.readdirSync(NODES_PATH);
-    for (const file of files) {
-        if (file.startsWith('nodes_') && file.endsWith('.json')) {
-            const filePath = path.join(NODES_PATH, file);
-            const data = fs.readFileSync(filePath, 'utf8');
-            const parsed = JSON.parse(data);
-            if (parsed.name === name) {
-                global.sendToFrontend('loaded_node:' + JSON.stringify({ id: parsed.id, data }));
-                return;
-            }
-        }
-    }
-    console.log('Node file not found for name:', name);
+    loadNode(name);
 }
 
-function loadWorkspace(id, recursive = false) {
-    console.log('Loading workspace:', id, recursive ? 'recursively' : '');
-    const fileName = `workspaces_${id}.json`;
+function loadWorkspace(name, recursive = false) {
+    console.log('Loading workspace:', name, recursive ? 'recursively' : '');
+    const fileName = `${name}.json`;
     const filePath = path.join(WORKSPACES_PATH, fileName);
     if (fs.existsSync(filePath)) {
         console.log('Workspace file found, sending data');
         const data = fs.readFileSync(filePath, 'utf8');
-        global.sendToFrontend('loaded_workspace:' + JSON.stringify({ id, data, recursive }));
+        global.sendToFrontend('loaded_workspace:' + JSON.stringify({ id: name, data, recursive }));
     } else {
         console.log('Workspace file not found');
     }
@@ -65,19 +53,7 @@ function loadWorkspace(id, recursive = false) {
 
 function loadWorkspaceByName(name, recursive = false) {
     console.log('Loading workspace by name:', name, recursive ? 'recursively' : '');
-    const files = fs.readdirSync(WORKSPACES_PATH);
-    for (const file of files) {
-        if (file.startsWith('workspaces_') && file.endsWith('.json')) {
-            const filePath = path.join(WORKSPACES_PATH, file);
-            const data = fs.readFileSync(filePath, 'utf8');
-            const parsed = JSON.parse(data);
-            if (parsed.name === name) {
-                global.sendToFrontend('loaded_workspace:' + JSON.stringify({ id: parsed.id, data, recursive }));
-                return;
-            }
-        }
-    }
-    console.log('Workspace file not found for name:', name);
+    loadWorkspace(name, recursive);
 }
 
 module.exports = { saveWorkspace, saveNode, loadWorkspace, loadNode, loadWorkspaceByName, loadNodeByName };
