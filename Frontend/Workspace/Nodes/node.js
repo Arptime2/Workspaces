@@ -49,10 +49,14 @@ function drawBalls(ctx) {
         // Draw name
         if (!(window.isEditing && window.editingItem === ball)) {
             ctx.fillStyle = 'white';
-            ctx.font = `${12 * window.scale}px Arial`;
+            ctx.font = `${16 * window.scale}px Arial`;
             ctx.textAlign = 'center';
             // Draw description if under crosshair
             if (under && under.type === 'node' && under.item === ball) {
+                ctx.fillStyle = 'black';
+                ctx.fillRect(ball.x - 60, ball.y - ball.radius - 25, 120, 15);
+                ctx.fillStyle = 'white';
+                ctx.font = `${20 * window.scale}px Arial`;
                 ctx.fillText(ball.description, ball.x, ball.y - ball.radius - 20);
             }
             ctx.fillText(ball.name, ball.x, ball.y - ball.radius - 5);
@@ -62,15 +66,15 @@ function drawBalls(ctx) {
 }
 
 function handleBallMouseDown(e) {
-    const mouseX = e.clientX;
-    const mouseY = e.clientY;
-    window.balls.forEach(ball => {
-        const dist = Math.sqrt((mouseX - ball.x) ** 2 + (mouseY - ball.y) ** 2);
+    const worldMouseX = (e.clientX - window.panOffsetX) / window.zoom;
+    const worldMouseY = (e.clientY - window.panOffsetY) / window.zoom;
+    for (let ball of window.balls) {
+        const dist = Math.sqrt((worldMouseX - ball.x) ** 2 + (worldMouseY - ball.y) ** 2);
         if (dist < ball.radius) {
-            draggedBall = ball;
-            isDragging = true;
+            return ball;
         }
-    });
+    }
+    return null;
 }
 
 function handleBallMouseMove(e, prevMouseX, prevMouseY) {

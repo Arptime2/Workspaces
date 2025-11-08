@@ -54,11 +54,15 @@ function drawWorkspace(ws, ctx) {
     // Draw name
     if (!(window.isEditing && window.editingItem === ws)) {
         ctx.fillStyle = 'white';
-        ctx.font = `${12 * window.scale}px Arial`;
+        ctx.font = `${16 * window.scale}px Arial`;
         ctx.textAlign = 'center';
         // Draw description if under crosshair
         const under = window.getItemUnderCrosshair();
         if (under && under.type === 'workspace' && under.item === ws) {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(ws.x + ws.width / 2 - 60, ws.y - 30, 120, 15);
+            ctx.fillStyle = 'white';
+            ctx.font = `${20 * window.scale}px Arial`;
             ctx.fillText(ws.description, ws.x + ws.width / 2, ws.y - 25);
         }
         ctx.fillText(ws.name, ws.x + ws.width / 2, ws.y - 10);
@@ -83,10 +87,14 @@ function drawWorkspaces(ctx) {
         }
     });
     if (window.isDefiningWorkspace) {
-        const x = Math.min(workspaceStartX, workspaceEndX);
-        const y = Math.min(workspaceStartY, workspaceEndY);
-        const w = Math.abs(workspaceEndX - workspaceStartX);
-        const h = Math.abs(workspaceEndY - workspaceStartY);
+        const worldStartX = (workspaceStartX - window.panOffsetX) / window.zoom;
+        const worldStartY = (workspaceStartY - window.panOffsetY) / window.zoom;
+        const worldEndX = (workspaceEndX - window.panOffsetX) / window.zoom;
+        const worldEndY = (workspaceEndY - window.panOffsetY) / window.zoom;
+        const x = Math.min(worldStartX, worldEndX);
+        const y = Math.min(worldStartY, worldEndY);
+        const w = Math.abs(worldEndX - worldStartX);
+        const h = Math.abs(worldEndY - worldStartY);
         drawRoundedRect(ctx, x, y, w, h);
     }
     ctx.restore();
@@ -121,16 +129,20 @@ function drawRoundedRect(ctx, x, y, width, height) {
 }
 
 function handleWorkspaceMouseDown(e) {
-    const mouseX = e.clientX;
-    const mouseY = e.clientY;
+    const worldMouseX = (e.clientX - window.panOffsetX) / window.zoom;
+    const worldMouseY = (e.clientY - window.panOffsetY) / window.zoom;
+    console.log('handleWorkspaceMouseDown worldMouse:', worldMouseX, worldMouseY);
     let candidate = null;
     for (let ws of window.workspaces) {
-        if (mouseX >= ws.x && mouseX <= ws.x + ws.width && mouseY >= ws.y && mouseY <= ws.y + ws.height) {
+        console.log('checking ws', ws.id, 'x:', ws.x, 'y:', ws.y, 'w:', ws.width, 'h:', ws.height);
+        if (worldMouseX >= ws.x && worldMouseX <= ws.x + ws.width && worldMouseY >= ws.y && worldMouseY <= ws.y + ws.height) {
+            console.log('in bounds for ws', ws.id);
             if (!candidate || (ws.width * ws.height < candidate.width * candidate.height)) {
                 candidate = ws;
             }
         }
     }
+    console.log('candidate ws:', candidate ? candidate.id : null);
     return candidate;
 }
 

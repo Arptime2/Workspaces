@@ -16,6 +16,8 @@ if (window.visualViewport) {
 }
 window.panOffsetX = 0;
 window.panOffsetY = 0;
+window.scale = 1;
+window.zoom = 1;
 window.crosshairVirtualX = canvas.width / 2;
 window.crosshairVirtualY = canvas.height / 2;
 
@@ -131,35 +133,38 @@ canvas.addEventListener('mousedown', (e) => {
     }
     mouseDown = true;
     hasMoved = false;
-    handleBallMouseDown(e);
+    const ball = handleBallMouseDown(e);
     const ws = handleWorkspaceMouseDown(e);
-    if (!draggedBall && !ws) {
+    if (ball) {
         longPressTimer = setTimeout(() => {
-            if (!hasMoved) {
-                window.isDefiningWorkspace = true;
-                workspaceStartX = e.clientX;
-                workspaceStartY = e.clientY;
-                workspaceEndX = e.clientX;
-                workspaceEndY = e.clientY;
-            }
-        }, 300);
-     } else if (ws && !draggedBall) {
-        // On workspace, start timer for dragging
+            console.log('dragging ball', ball.id);
+            draggedBall = ball;
+            isDragging = true;
+        }, 200);
+    } else if (ws) {
         longPressTimer = setTimeout(() => {
-             if (!hasMoved) {
-                 draggedWorkspace = ws;
-                 draggedNodes = getAllChildNodes(ws);
-                 draggedChildWorkspaces = getAllChildWorkspaces(ws);
-                 draggedChildWorkspaces.forEach(child => {
-                     child.offsetX = child.x - draggedWorkspace.x;
-                     child.offsetY = child.y - draggedWorkspace.y;
-                 });
-                 draggedNodes.forEach(node => {
-                     node.offsetX = node.x - draggedWorkspace.x;
-                     node.offsetY = node.y - draggedWorkspace.y;
-                 });
-             }
-         }, 300);
+            console.log('dragging ws', ws.id);
+            draggedWorkspace = ws;
+            draggedNodes = getAllChildNodes(ws);
+            draggedChildWorkspaces = getAllChildWorkspaces(ws);
+            draggedChildWorkspaces.forEach(child => {
+                child.offsetX = child.x - draggedWorkspace.x;
+                child.offsetY = child.y - draggedWorkspace.y;
+            });
+            draggedNodes.forEach(node => {
+                node.offsetX = node.x - draggedWorkspace.x;
+                node.offsetY = node.y - draggedWorkspace.y;
+            });
+        }, 200);
+    } else {
+        longPressTimer = setTimeout(() => {
+            console.log('defining workspace');
+            window.isDefiningWorkspace = true;
+            workspaceStartX = e.clientX;
+            workspaceStartY = e.clientY;
+            workspaceEndX = e.clientX;
+            workspaceEndY = e.clientY;
+        }, 200);
     }
 });
 
@@ -170,7 +175,20 @@ document.addEventListener('mousemove', (e) => {
         mouseInitialized = true;
         return;
     }
-    hasMoved = true;
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+    if (draggedBall || draggedWorkspace) {
+        hasMoved = true;
+    }
+    if (!hasMoved) {
+        const dx = e.clientX - prevMouseX;
+        const dy = e.clientY - prevMouseY;
+        if (Math.sqrt(dx * dx + dy * dy) > 10) {
+            hasMoved = true;
+        }
+    }
     if (isConnecting && draggedBall) {
         // Cancel connection if dragging
         isConnecting = false;
@@ -197,8 +215,16 @@ document.addEventListener('mousemove', (e) => {
         workspaceEndX = e.clientX;
         workspaceEndY = e.clientY;
     }
+
     prevMouseX = e.clientX;
     prevMouseY = e.clientY;
+    window.mouseX = e.clientX - canvas.offsetLeft;
+    window.mouseY = e.clientY - canvas.offsetTop;
+});
+
+canvas.addEventListener('mouseenter', (e) => {
+    window.mouseX = e.clientX - canvas.offsetLeft;
+    window.mouseY = e.clientY - canvas.offsetTop;
 });
 
 canvas.addEventListener('mouseleave', () => {
