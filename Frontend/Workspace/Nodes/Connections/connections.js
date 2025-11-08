@@ -35,6 +35,9 @@ function finishConnection(secondNode) {
 }
 
 function drawConnections(ctx) {
+    ctx.save();
+    ctx.translate(window.panOffsetX, window.panOffsetY);
+    ctx.scale(window.zoom, window.zoom);
     window.balls.forEach(node => {
         node.outgoing.forEach(otherId => {
             const other = window.balls.find(b => b.id === otherId);
@@ -49,14 +52,21 @@ function drawConnections(ctx) {
             }
         });
     });
+    ctx.restore();
 }
 
 function drawSelectionLine(ctx) {
     if (isConnecting && firstNode) {
+        ctx.save();
+        ctx.translate(window.panOffsetX, window.panOffsetY);
+        ctx.scale(window.zoom, window.zoom);
         const allConnections = getAllConnections();
-        const closeSameDirection = allConnections.some(conn => conn.from === firstNode.id && isCloseToLine(currentMouseX, currentMouseY, window.balls.find(b => b.id === conn.from), window.balls.find(b => b.id === conn.to)));
+        const worldMouseX = (currentMouseX - window.panOffsetX) / window.zoom;
+        const worldMouseY = (currentMouseY - window.panOffsetY) / window.zoom;
+        const closeSameDirection = allConnections.some(conn => conn.from === firstNode.id && isCloseToLine(worldMouseX, worldMouseY, window.balls.find(b => b.id === conn.from), window.balls.find(b => b.id === conn.to)));
         const color = closeSameDirection ? 'red' : 'white';
-        drawLine(ctx, firstNode.x, firstNode.y, currentMouseX, currentMouseY, color, true);
+        drawLine(ctx, firstNode.x, firstNode.y, worldMouseX, worldMouseY, color, true);
+        ctx.restore();
     }
 }
 

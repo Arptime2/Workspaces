@@ -35,6 +35,9 @@ function initBalls(canvas) {
 }
 
 function drawBalls(ctx) {
+    ctx.save();
+    ctx.translate(window.panOffsetX, window.panOffsetY);
+    ctx.scale(window.zoom, window.zoom);
     ctx.shadowBlur = 20;
     const under = window.getItemUnderCrosshair();
     window.balls.forEach(ball => {
@@ -55,6 +58,7 @@ function drawBalls(ctx) {
             ctx.fillText(ball.name, ball.x, ball.y - ball.radius - 5);
         }
     });
+    ctx.restore();
 }
 
 function handleBallMouseDown(e) {

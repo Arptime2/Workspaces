@@ -147,8 +147,7 @@ window.handleLoadedMessage = async function(message) {
             data.x += window.currentOffset.offsetX;
             data.y += window.currentOffset.offsetY;
         }
-        data.x += window.panOffsetX;
-        data.y += window.panOffsetY;
+        // Removed panOffset additions for fixed coordinates
         data.outgoing = data.outgoing; // already ids
         const actualId = createNewNode(data.x, data.y, data.radius, data.id, data.name, data.description, data.color, data.labels, data.outgoing, data.systemPrompt, data.prompt, data.tokenCount, data.contextLabels, data.contextCount, data.nodeType);
         const keys = [data.name, String(payload.id)];
@@ -209,16 +208,15 @@ window.handleLoadedMessage = async function(message) {
             data.x += window.currentOffset.offsetX;
             data.y += window.currentOffset.offsetY;
         }
-        data.x += window.panOffsetX;
-        data.y += window.panOffsetY;
+        // Removed panOffset additions for fixed coordinates
         if (payload.recursive) {
             console.log('About to load nodes:', data.nodeIds);
             const loadedNodeIds = await Promise.all(data.nodeIds.map(async (item) => {
                 const id = await loadNode(item.name);
                 const ball = window.balls.find(b => b.id === id);
                 if (ball) {
-                    ball.x = item.x + window.panOffsetX + (window.currentOffset?.offsetX || 0);
-                    ball.y = item.y + window.panOffsetY + (window.currentOffset?.offsetY || 0);
+                    ball.x = item.x + (window.currentOffset?.offsetX || 0);
+                    ball.y = item.y + (window.currentOffset?.offsetY || 0);
                 }
                 return id;
             }));
@@ -228,14 +226,13 @@ window.handleLoadedMessage = async function(message) {
                 const id = await loadWorkspace(item.name, true);
                 const ws = window.workspaces.find(w => w.id === id);
                 if (ws) {
-                    ws.x = item.x + window.panOffsetX + (window.currentOffset?.offsetX || 0);
-                    ws.y = item.y + window.panOffsetY + (window.currentOffset?.offsetY || 0);
+                    ws.x = item.x + (window.currentOffset?.offsetX || 0);
+                    ws.y = item.y + (window.currentOffset?.offsetY || 0);
                 }
                 return id;
             }));
             console.log('Loaded workspace ids:', loadedWorkspaceIds);
-            data.x += window.panOffsetX;
-            data.y += window.panOffsetY;
+            // Removed panOffset additions for fixed coordinates
             data.nodeIds = loadedNodeIds;
             data.workspaceIds = loadedWorkspaceIds;
             console.log('Creating workspace with nodeIds:', data.nodeIds, 'workspaceIds:', data.workspaceIds);
@@ -251,14 +248,13 @@ window.handleLoadedMessage = async function(message) {
                 }
             });
         } else {
-            data.x += window.panOffsetX;
-            data.y += window.panOffsetY;
+            // Removed panOffset additions for fixed coordinates
             const loadedNodeIds = await Promise.all(data.nodeIds.map(async (item) => {
                 const id = await loadNode(item.name);
                 const ball = window.balls.find(b => b.id === id);
                 if (ball) {
-                    ball.x = item.x + window.panOffsetX + (window.currentOffset?.offsetX || 0);
-                    ball.y = item.y + window.panOffsetY + (window.currentOffset?.offsetY || 0);
+                    ball.x = item.x + (window.currentOffset?.offsetX || 0);
+                    ball.y = item.y + (window.currentOffset?.offsetY || 0);
                 }
                 return id;
             }));
@@ -266,8 +262,8 @@ window.handleLoadedMessage = async function(message) {
             data.workspaceIds = data.workspaceIds.map(item => {
                 const ws = window.workspaces.find(w => w.name === item.name);
                 if (ws) {
-                    ws.x = item.x + window.panOffsetX + (window.currentOffset?.offsetX || 0);
-                    ws.y = item.y + window.panOffsetY + (window.currentOffset?.offsetY || 0);
+                    ws.x = item.x + (window.currentOffset?.offsetX || 0);
+                    ws.y = item.y + (window.currentOffset?.offsetY || 0);
                 }
                 return ws?.id;
             }).filter(Boolean);

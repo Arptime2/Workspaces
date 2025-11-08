@@ -73,6 +73,9 @@ function drawWorkspace(ws, ctx) {
 }
 
 function drawWorkspaces(ctx) {
+    ctx.save();
+    ctx.translate(window.panOffsetX, window.panOffsetY);
+    ctx.scale(window.zoom, window.zoom);
     // Draw top-level window.workspaces (those not in any other)
     window.workspaces.forEach(ws => {
         if (!window.workspaces.some(other => other.workspaceIds.includes(ws.id))) {
@@ -86,6 +89,7 @@ function drawWorkspaces(ctx) {
         const h = Math.abs(workspaceEndY - workspaceStartY);
         drawRoundedRect(ctx, x, y, w, h);
     }
+    ctx.restore();
 }
 
 function getCSSVar(varName) {
@@ -136,8 +140,8 @@ function isNodeInWorkspace(ball, ws) {
 
 function handleWorkspaceMouseMove(deltaX, deltaY) {
     if (draggedWorkspace) {
-        draggedWorkspace.x += deltaX;
-        draggedWorkspace.y += deltaY;
+        draggedWorkspace.x += deltaX / window.zoom;
+        draggedWorkspace.y += deltaY / window.zoom;
         // Set positions relative to draggedWorkspace
         draggedNodes.forEach(ball => {
             ball.x = draggedWorkspace.x + ball.offsetX;
@@ -195,6 +199,9 @@ function updateWorkspaceSize(ws) {
 }
 
 function drawClosedOverlays(ctx) {
+    ctx.save();
+    ctx.translate(window.panOffsetX, window.panOffsetY);
+    ctx.scale(window.zoom, window.zoom);
     window.workspaces.forEach(ws => {
         if (ws.closed) {
             const radius = parseInt(getCSSVar('--workspace-radius'));
@@ -217,6 +224,7 @@ function drawClosedOverlays(ctx) {
             ctx.stroke();
         }
     });
+    ctx.restore();
 }
 
 function isNodeInAnyWorkspace(ball) {

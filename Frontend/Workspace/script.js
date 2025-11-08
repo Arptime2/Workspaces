@@ -20,11 +20,11 @@ window.crosshairVirtualX = canvas.width / 2;
 window.crosshairVirtualY = canvas.height / 2;
 
 window.getItemUnderCrosshair = function() {
-    const screenX = window.crosshairVirtualX - window.panOffsetX;
-    const screenY = window.crosshairVirtualY - window.panOffsetY;
+    const worldX = (window.crosshairVirtualX - window.panOffsetX) / window.zoom;
+    const worldY = (window.crosshairVirtualY - window.panOffsetY) / window.zoom;
     // Check nodes
     for (let ball of window.balls) {
-        const dist = Math.sqrt((screenX - ball.x) ** 2 + (screenY - ball.y) ** 2);
+        const dist = Math.sqrt((worldX - ball.x) ** 2 + (worldY - ball.y) ** 2);
         if (dist < ball.radius) {
             return { type: 'node', item: ball };
         }
@@ -32,7 +32,7 @@ window.getItemUnderCrosshair = function() {
     // Check window.workspaces, innermost
     let candidate = null;
     for (let ws of window.workspaces) {
-        if (screenX >= ws.x && screenX <= ws.x + ws.width && screenY >= ws.y && screenY <= ws.y + ws.height) {
+        if (worldX >= ws.x && worldX <= ws.x + ws.width && worldY >= ws.y && worldY <= ws.y + ws.height) {
             if (!candidate || (ws.width * ws.height < candidate.width * candidate.height)) {
                 candidate = ws;
             }
@@ -103,10 +103,14 @@ animate();
 canvas.addEventListener('mousedown', (e) => {
     if (window.isDefiningWorkspace) {
         // Second click to place
-        const w = Math.abs(e.clientX - workspaceStartX);
-        const h = Math.abs(e.clientY - workspaceStartY);
-        const x = Math.min(e.clientX, workspaceStartX);
-        const y = Math.min(e.clientY, workspaceStartY);
+        const worldStartX = (workspaceStartX - window.panOffsetX) / window.zoom;
+        const worldStartY = (workspaceStartY - window.panOffsetY) / window.zoom;
+        const worldEndX = (e.clientX - window.panOffsetX) / window.zoom;
+        const worldEndY = (e.clientY - window.panOffsetY) / window.zoom;
+        const w = Math.abs(worldEndX - worldStartX);
+        const h = Math.abs(worldEndY - worldStartY);
+        const x = Math.min(worldStartX, worldEndX);
+        const y = Math.min(worldStartY, worldEndY);
         const id = window.nextWorkspaceId++;
         window.workspaces.push(new Workspace(x, y, w, h, id, 'Workspace ' + id, '', []));
         const ws = window.workspaces[window.workspaces.length - 1];
@@ -173,8 +177,8 @@ document.addEventListener('mousemove', (e) => {
         document.body.classList.remove('connecting');
     }
     if (draggedBall) {
-        const deltaX = e.clientX - prevMouseX;
-        const deltaY = e.clientY - prevMouseY;
+        const deltaX = (e.clientX - prevMouseX) / window.zoom;
+        const deltaY = (e.clientY - prevMouseY) / window.zoom;
         draggedBall.x += deltaX;
         draggedBall.y += deltaY;
     } else if (draggedWorkspace) {
@@ -184,15 +188,10 @@ document.addEventListener('mousemove', (e) => {
     } else if (mouseDown && !isDragging && !draggedWorkspace && !window.isDefiningWorkspace) {
         const deltaX = e.clientX - prevMouseX;
         const deltaY = e.clientY - prevMouseY;
-        window.balls.forEach(ball => {
-            ball.x += deltaX;
-            ball.y += deltaY;
-        });
-        panWorkspaces(deltaX, deltaY);
+        // Removed moving balls and workspaces for fixed coordinates
         window.panOffsetX += deltaX;
         window.panOffsetY += deltaY;
-        window.crosshairVirtualX += deltaX;
-        window.crosshairVirtualY += deltaY;
+        // Keep crosshair at center
     }
     if (window.isDefiningWorkspace) {
         workspaceEndX = e.clientX;
@@ -297,10 +296,12 @@ canvas.addEventListener('click', async (e) => {
     lastClickTime = currentTime;
     pendingMouseX = mouseX;
     pendingMouseY = mouseY;
+    const worldMouseX = (pendingMouseX - window.panOffsetX) / window.zoom;
+    const worldMouseY = (pendingMouseY - window.panOffsetY) / window.zoom;
 
     let clickedOnBall = false;
     window.balls.forEach(async (ball) => {
-        const dist = Math.sqrt((pendingMouseX - ball.x) ** 2 + (pendingMouseY - ball.y) ** 2);
+        const dist = Math.sqrt((worldMouseX - ball.x) ** 2 + (worldMouseY - ball.y) ** 2);
         if (dist < ball.radius) {
             clickedOnBall = true;
             handleConnectionClick(ball);
@@ -310,7 +311,7 @@ canvas.addEventListener('click', async (e) => {
                 // Check if clicked on name
                 const nameX = ball.x;
                 const nameY = ball.y - ball.radius - 5;
-                const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
+                const nameDist = Math.sqrt((worldMouseX - nameX) ** 2 + (worldMouseY - nameY) ** 2);
                  if (nameDist < 20 * window.scale) { // Tolerance
                      const under = getItemUnderCrosshair();
                      if (under && under.type === 'node' && under.item === ball) {
@@ -345,7 +346,7 @@ canvas.addEventListener('click', async (e) => {
                      if (under && under.type === 'node' && under.item === ball) {
                          const descX = ball.x;
                          const descY = ball.y - ball.radius - 20;
-                         const descDist = Math.sqrt((pendingMouseX - descX) ** 2 + (pendingMouseY - descY) ** 2);
+                          const descDist = Math.sqrt((worldMouseX - descX) ** 2 + (worldMouseY - descY) ** 2);
                          if (descDist < 20 * window.scale) {
                              window.editingItem = ball;
                              editingType = 'node_description';
@@ -369,7 +370,7 @@ canvas.addEventListener('click', async (e) => {
         for (let ws of window.workspaces) {
             const nameX = ws.x + ws.width / 2;
             const nameY = ws.y - 10;
-            const nameDist = Math.sqrt((pendingMouseX - nameX) ** 2 + (pendingMouseY - nameY) ** 2);
+            const nameDist = Math.sqrt((worldMouseX - nameX) ** 2 + (worldMouseY - nameY) ** 2);
              if (nameDist < 30 * window.scale) { // Tolerance
                  const under = getItemUnderCrosshair();
                  if (under && under.type === 'workspace' && under.item === ws) {
@@ -406,7 +407,7 @@ canvas.addEventListener('click', async (e) => {
                  if (under && under.type === 'workspace' && under.item === ws) {
                      const descX = ws.x + ws.width / 2;
                      const descY = ws.y - 25;
-                     const descDist = Math.sqrt((pendingMouseX - descX) ** 2 + (pendingMouseY - descY) ** 2);
+                      const descDist = Math.sqrt((worldMouseX - descX) ** 2 + (worldMouseY - descY) ** 2);
                      if (descDist < 30 * window.scale) {
                          window.editingItem = ws;
                          editingType = 'workspace_description';
@@ -434,7 +435,7 @@ canvas.addEventListener('click', async (e) => {
             pendingTimeout = null;
         }
         for (let ws of window.workspaces) {
-            if (pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height) {
+            if (worldMouseX >= ws.x && worldMouseX <= ws.x + ws.width && worldMouseY >= ws.y && worldMouseY <= ws.y + ws.height) {
                 ws.closed = !ws.closed;
                 return; // Toggle and exit
             }
@@ -448,15 +449,15 @@ canvas.addEventListener('click', async (e) => {
     pendingTimeout = setTimeout(() => {
         if (clickCount === 1 && !clickedOnBall) {
             // Check if click is in a closed workspace
-            const inClosedWorkspace = window.workspaces.some(ws => ws.closed && pendingMouseX >= ws.x && pendingMouseX <= ws.x + ws.width && pendingMouseY >= ws.y && pendingMouseY <= ws.y + ws.height);
+            const inClosedWorkspace = window.workspaces.some(ws => ws.closed && worldMouseX >= ws.x && worldMouseX <= ws.x + ws.width && worldMouseY >= ws.y && worldMouseY <= ws.y + ws.height);
             if (!inClosedWorkspace) {
                 // Check for overlap
                 const tooClose = window.balls.some(ball => {
-                    const dist = Math.sqrt((pendingMouseX - ball.x) ** 2 + (pendingMouseY - ball.y) ** 2);
+                    const dist = Math.sqrt((worldMouseX - ball.x) ** 2 + (worldMouseY - ball.y) ** 2);
                     return dist < ball.radius + 20;
                 });
                 if (!tooClose) {
-                    const newNode = new Node(pendingMouseX, pendingMouseY, 20 * window.scale, window.nextId++);
+                    const newNode = new Node(worldMouseX, worldMouseY, 20 * window.scale, window.nextId++);
                     window.balls.push(newNode);
                     window.workspaces.forEach(ws => {
                         if (isNodeInWorkspace(newNode, ws) && !isNodeInAnyWorkspace(newNode)) {
