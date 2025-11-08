@@ -284,3 +284,77 @@ window.handleLoadedMessage = async function(message) {
         }
     }
 };
+
+function updateRelativePosition(name, id) {
+    const item = window.balls.find(b => b.id === id) || window.workspaces.find(w => w.id === id);
+    if (!item) {
+        console.error('Item not found for updateRelativePosition:', name, id);
+        return;
+    }
+    // Find direct parent
+    let parent = null;
+    if (item.constructor.name === 'Node') {
+        // Find smallest workspace containing the node and having it in nodeIds
+        for (let ws of window.workspaces) {
+            if (isNodeInWorkspace(item, ws) && ws.nodeIds.includes(item.id)) {
+                if (!parent || ws.width * ws.height < parent.width * parent.height) {
+                    parent = ws;
+                }
+            }
+        }
+    } else { // workspace
+        for (let ws of window.workspaces) {
+            if (ws !== item && isWorkspaceInWorkspace(item, ws) && ws.workspaceIds.includes(item.id)) {
+                if (!parent || ws.width * ws.height < parent.width * parent.height) {
+                    parent = ws;
+                }
+            }
+        }
+    }
+    if (!parent) {
+        console.log('No parent found for item:', name, id);
+        return; // no parent
+    }
+    const relX = item.x - parent.x;
+    const relY = item.y - parent.y;
+    // Now find all others with same name, different id
+    const allItems = [...window.balls, ...window.workspaces];
+    const matchingItems = allItems.filter(i => i.name === name && i.id !== id);
+    matchingItems.forEach(other => {
+        // Find their parent
+        let otherParent = null;
+        if (other.constructor.name === 'Node') {
+            for (let ws of window.workspaces) {
+                if (isNodeInWorkspace(other, ws) && ws.nodeIds.includes(other.id)) {
+                    if (!otherParent || ws.width * ws.height < otherParent.width * otherParent.height) {
+                        otherParent = ws;
+                    }
+                }
+            }
+        } else {
+            for (let ws of window.workspaces) {
+                if (ws !== other && isWorkspaceInWorkspace(other, ws) && ws.workspaceIds.includes(other.id)) {
+                    if (!otherParent || ws.width * ws.height < otherParent.width * otherParent.height) {
+                        otherParent = ws;
+                    }
+                }
+            }
+        }
+        if (otherParent && otherParent.name === parent.name) {
+            other.x = otherParent.x + relX;
+            other.y = otherParent.y + relY;
+            // Save
+            if (other.constructor.name === 'Node') {
+                saveNode(other.name);
+            } else {
+                saveWorkspace(other.name);
+            }
+        }
+    });
+    // Also save the original
+    if (item.constructor.name === 'Node') {
+        saveNode(item.name);
+    } else {
+        saveWorkspace(item.name);
+    }
+}

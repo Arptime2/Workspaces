@@ -581,9 +581,36 @@ saveWorkspace('New Workspace');
 saveNode('New Node');
 setTimeout(() => {
     loadWorkspaceNewVersion('New Workspace', 100, 100);
-    loadNode('New Node');
+    
 }, 5000);
 
 setTimeout(() => {
     loadWorkspaceNewVersion('New Workspace', 200, 200);
 }, 10000);
+
+setTimeout(() => {
+    loadWorkspaceNewVersion('New Workspace', 300, 400);
+}, 12000);
+
+setTimeout(() => {
+    // Test updateRelativePosition
+    // Create another node with same name at different position
+    const newNode2Id = createNewNode(300, 300, 20, undefined, 'New Node');
+    const newNode2 = window.balls.find(b => b.id === newNode2Id);
+    // Find the first 'New Node'
+    const testNode = window.balls.find(b => b.name === 'New Node' && b.id !== newNode2Id);
+    if (testNode) {
+        // Move the first node by 30,30
+        testNode.x += 30;
+        testNode.y += 30;
+        console.log('Moved first node to', testNode.x, testNode.y);
+        updateRelativePosition('New Node', testNode.id);
+        console.log('Tested updateRelativePosition for node');
+        // Log positions of all 'New Node' nodes
+        window.balls.forEach(b => {
+            if (b.name === 'New Node') {
+                console.log('Node id', b.id, 'at', b.x, b.y);
+            }
+        });
+    }
+}, 15000);
