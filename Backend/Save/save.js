@@ -95,4 +95,18 @@ function updateWorkspaceReferences(itemName, itemType, newX, newY, excludeWorksp
     }
 }
 
-module.exports = { saveWorkspace, saveNode, loadWorkspace, loadNode, loadWorkspaceByName, loadNodeByName, updateWorkspaceReferences };
+function getAllSaveFiles() {
+    const workspaces = fs.readdirSync(WORKSPACES_PATH).filter(f => f.endsWith('.json')).map(f => {
+        const name = f.slice(0, -5);
+        const data = fs.readFileSync(path.join(WORKSPACES_PATH, f), 'utf8');
+        return { name, data };
+    });
+    const nodes = fs.readdirSync(NODES_PATH).filter(f => f.endsWith('.json')).map(f => {
+        const name = f.slice(0, -5);
+        const data = fs.readFileSync(path.join(NODES_PATH, f), 'utf8');
+        return { name, data };
+    });
+    return { workspaces, nodes };
+}
+
+module.exports = { saveWorkspace, saveNode, loadWorkspace, loadNode, loadWorkspaceByName, loadNodeByName, updateWorkspaceReferences, getAllSaveFiles };

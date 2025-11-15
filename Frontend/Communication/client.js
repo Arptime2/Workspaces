@@ -19,6 +19,8 @@ window.sendToBackend = async (message) => {
 window.onMessageFromBackend = (message) => {
     if (message.startsWith('loaded_')) {
         window.handleLoadedMessage(message);
+    } else if (message.startsWith('save_files:')) {
+        window.saveFiles = JSON.parse(message.slice('save_files:'.length));
     } else {
         console.log('Message from backend:', message);
         // Default handler, can be overridden

@@ -8,9 +8,10 @@
   "description": "A newly created workspace",
   "nodeIds": [
     {
+      "id": 5,
       "name": "New Node",
-      "x": 130,
-      "y": 130
+      "x": 100,
+      "y": 100
     }
   ],
   "workspaceIds": [],

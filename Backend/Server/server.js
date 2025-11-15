@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { handleMessage, handlePoll, handleSendMessage } = require('./Communication/communication');
 const { spawnShell } = require('../Terminal/terminal');
-const { saveWorkspace, saveNode, loadWorkspace, loadNode, loadWorkspaceByName, loadNodeByName } = require('../Save/save');
+const { saveWorkspace, saveNode, loadWorkspace, loadNode, loadWorkspaceByName, loadNodeByName, getAllSaveFiles } = require('../Save/save');
 
 function parseMessage(message, prefix) {
     return message.slice(prefix.length);
@@ -88,3 +88,8 @@ function getContentType(filePath) {
 server.listen(3000, '0.0.0.0', () => {
     console.log('Server running on http://0.0.0.0:3000');
 });
+
+// Constantly send save files info to frontend
+setInterval(() => {
+    global.sendToFrontend('save_files:' + JSON.stringify(getAllSaveFiles()));
+}, 1000);

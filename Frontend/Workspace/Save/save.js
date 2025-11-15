@@ -42,8 +42,8 @@ function saveWorkspace(workspaceName) {
         id: workspace.id,
         name: workspace.name,
         description: workspace.description,
-        nodeIds: workspace.nodeIds.map(id => { const ball = window.balls.find(b => b.id === id); return ball ? { name: ball.name, x: ball.x, y: ball.y } : null; }).filter(Boolean),
-        workspaceIds: workspace.workspaceIds.map(id => { const ws = window.workspaces.find(w => w.id === id); return ws ? { name: ws.name, x: ws.x, y: ws.y } : null; }).filter(Boolean),
+        nodeIds: workspace.nodeIds.map(id => { const ball = window.balls.find(b => b.id === id); return ball ? { id: ball.id, name: ball.name, x: ball.x, y: ball.y } : null; }).filter(Boolean),
+        workspaceIds: workspace.workspaceIds.map(id => { const ws = window.workspaces.find(w => w.id === id); return ws ? { id: ws.id, name: ws.name, x: ws.x, y: ws.y } : null; }).filter(Boolean),
         closed: workspace.closed
     };
     const jsonString = JSON.stringify(data, null, 2);
@@ -281,76 +281,71 @@ window.handleLoadedMessage = async function(message) {
     }
 };
 
-function updateRelativePosition(name, id) {
-    const item = window.balls.find(b => b.id === id) || window.workspaces.find(w => w.id === id);
-    if (!item) {
-        console.error('Item not found for updateRelativePosition:', name, id);
-        return;
-    }
-    // Find direct parent
-    let parent = null;
-    if (item.constructor.name === 'Node') {
-        // Find smallest workspace containing the node and having it in nodeIds
-        for (let ws of window.workspaces) {
-            if (isNodeInWorkspace(item, ws) && ws.nodeIds.includes(item.id)) {
-                if (!parent || ws.width * ws.height < parent.width * parent.height) {
-                    parent = ws;
-                }
-            }
-        }
-    } else { // workspace
-        for (let ws of window.workspaces) {
-            if (ws !== item && isWorkspaceInWorkspace(item, ws) && ws.workspaceIds.includes(item.id)) {
-                if (!parent || ws.width * ws.height < parent.width * parent.height) {
-                    parent = ws;
-                }
-            }
-        }
-    }
-    if (!parent) {
-        console.log('No parent found for item:', name, id);
-        return; // no parent
-    }
-    const relX = item.x - parent.x;
-    const relY = item.y - parent.y;
-    // Now find all others with same name, different id
-    const allItems = [...window.balls, ...window.workspaces];
-    const matchingItems = allItems.filter(i => i.name === name && i.id !== id);
-    matchingItems.forEach(other => {
-        // Find their parent
-        let otherParent = null;
-        if (other.constructor.name === 'Node') {
-            for (let ws of window.workspaces) {
-                if (isNodeInWorkspace(other, ws) && ws.nodeIds.includes(other.id)) {
-                    if (!otherParent || ws.width * ws.height < otherParent.width * otherParent.height) {
-                        otherParent = ws;
-                    }
-                }
-            }
-        } else {
-            for (let ws of window.workspaces) {
-                if (ws !== other && isWorkspaceInWorkspace(other, ws) && ws.workspaceIds.includes(other.id)) {
-                    if (!otherParent || ws.width * ws.height < otherParent.width * otherParent.height) {
-                        otherParent = ws;
-                    }
-                }
-            }
-        }
-        if (otherParent && otherParent.name === parent.name) {
-            other.x = otherParent.x + relX;
-            other.y = otherParent.y + relY;
-            // Save
-            if (other.constructor.name === 'Node') {
-                saveNode(other.name);
-            } else {
-                saveWorkspace(other.name);
-            }
-        }
-    });
-    // Also save the original
-    if (item.constructor.name === 'Node') {
-        saveNode(item.name);
+
+
+function saveWorkspaceById(id) {
+    const workspace = window.workspaces.find(ws => ws.id === id);
+    if (workspace) {
+        saveWorkspace(workspace.name);
     } else {
-        saveWorkspace(item.name);
+        console.error('Workspace not found for save:', id);
     }
 }
+
+function recreateWorkspaceFromData(data, x, y) {
+    const parsed = JSON.parse(data);
+    // Create workspace at specified position
+    const wsId = createNewWorkspace(x, y, parsed.width, parsed.height, parsed.id, parsed.name, parsed.description, [], []);
+    const ws = window.workspaces.find(w => w.id === wsId);
+    // Create nodes
+    parsed.nodeIds.forEach(item => {
+        const nodeData = window.saveFiles.nodes.find(n => JSON.parse(n.data).id === item.id);
+        if (nodeData) {
+            const nodeParsed = JSON.parse(nodeData.data);
+            const nodeX = x + (item.x - parsed.x);
+            const nodeY = y + (item.y - parsed.y);
+            const nodeId = createNewNode(nodeX, nodeY, nodeParsed.radius, nodeParsed.id, nodeParsed.name, nodeParsed.description, nodeParsed.color, nodeParsed.labels, nodeParsed.outgoing, nodeParsed.systemPrompt, nodeParsed.prompt, nodeParsed.tokenCount, nodeParsed.contextLabels, nodeParsed.contextCount, nodeParsed.nodeType);
+            ws.nodeIds.push(nodeId);
+        }
+    });
+    // Create sub-workspaces recursively
+    parsed.workspaceIds.forEach(item => {
+        const subData = window.saveFiles.workspaces.find(w => JSON.parse(w.data).id === item.id);
+        if (subData) {
+            const subX = x + (item.x - parsed.x);
+            const subY = y + (item.y - parsed.y);
+            const subId = recreateWorkspaceFromData(subData.data, subX, subY);
+            ws.workspaceIds.push(subId);
+        }
+    });
+    updateWorkspaceSize(ws);
+    return wsId;
+}
+
+// Every 2 seconds, reload all topmost parent workspaces
+setInterval(() => {
+    console.log('Starting reload of topmost workspaces');
+    const topmost = window.workspaces.filter(ws => !window.workspaces.some(other => other.workspaceIds.includes(ws.id)));
+    topmost.forEach(ws => {
+        const saveData = window.saveFiles.workspaces.find(w => {
+            const parsed = JSON.parse(w.data);
+            return parsed.id === ws.id;
+        });
+        if (saveData) {
+            console.log('Reloading workspace:', ws.name, 'id:', ws.id);
+            // Get all child workspaces and nodes to delete
+            const allChildWs = getAllChildWorkspaces(ws);
+            allChildWs.push(ws); // include self
+            const allChildNodes = getAllChildNodes(ws);
+            // Remove from arrays
+            window.workspaces = window.workspaces.filter(w => !allChildWs.includes(w));
+            window.balls = window.balls.filter(b => !allChildNodes.includes(b));
+            // Recreate instantly
+            recreateWorkspaceFromData(saveData.data, ws.x, ws.y);
+            console.log('Reloaded workspace:', ws.name);
+        } else {
+            console.log('No save data found for workspace:', ws.name, 'id:', ws.id);
+        }
+    });
+    console.log('Reload cycle complete');
+}, 2000);
